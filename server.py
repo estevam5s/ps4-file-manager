@@ -29,6 +29,14 @@ READONLY_PATHS = ("/", "/dev", "/system", "/system_ex", "/preinst", "/preinst2",
 TEMP_DIR = tempfile.mkdtemp(prefix="ps4fm_")
 
 
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Filename, X-Destination, X-Transfer-Id, Content-Length"
+    return response
+
+
 def get_ftp():
     ftp = FTP()
     ftp.connect(PS4_IP, PS4_PORT, timeout=120)
