@@ -317,6 +317,7 @@ def api_upload_chunked():
 
     try:
         ftp = get_ftp()
+        ftp.sock.settimeout(None)
         uploaded = [0]
         start = time.time()
 
@@ -631,7 +632,7 @@ def api_disk_usage():
 
 @app.route("/api/upload_stream", methods=["POST", "OPTIONS"])
 def api_upload_stream():
-    """Stream upload via raw body — no multipart, no memory buffering. For large files (>1GB)."""
+    """Kept for backwards compat — redirects to chunked flow for large files."""
     if request.method == "OPTIONS":
         return "", 204
     filename = unquote(request.headers.get("X-Filename", "upload.pkg"))
@@ -655,6 +656,7 @@ def api_upload_stream():
 
     try:
         ftp = get_ftp()
+        ftp.sock.settimeout(None)
         ensure_dir_exists(ftp, dest)
         uploaded = [0]
         start = time.time()
@@ -686,6 +688,155 @@ def api_upload_stream():
             if transfer_id in transfers:
                 transfers[transfer_id].update({"status": "error", "error": str(e)})
         return jsonify({"error": str(e)}), 500
+
+
+# ── Chunked upload (reliable for large files) ──
+
+CHUNK_SIZE_LIMIT = 12 * 1024 * 1024  # 12 MB max per chunk
+app.config["MAX_CONTENT_LENGTH"] = CHUNK_SIZE_LIMIT + 1024 * 1024  # chunk + overhead
+pending_uploads = {}
+pending_uploads_lock = threading.Lock()
+
+
+@app.route("/api/upload_init", methods=["POST"])
+def api_upload_init():
+    """Start a chunked upload: create temp file, return upload_id."""
+    data = request.json
+    filename = sanitize_ftp_filename(data.get("filename", "upload.pkg"))
+    dest = data.get("dest", "/mnt/usb0")
+    total_size = data.get("size", 0)
+    transfer_id = data.get("transfer_id", str(uuid.uuid4()))
+
+    if dest in READONLY_PATHS:
+        return jsonify({"error": f"Destino '{dest}' e somente leitura"}), 400
+
+    tmp_path = os.path.join(TEMP_DIR, f"{transfer_id}.tmp")
+    with open(tmp_path, "wb") as _:
+        pass
+
+    remote = f"{dest.rstrip('/')}/{filename}"
+
+    with pending_uploads_lock:
+        pending_uploads[transfer_id] = {
+            "tmp_path": tmp_path,
+            "filename": filename,
+            "dest": dest,
+            "remote": remote,
+            "total_size": total_size,
+            "received": 0,
+        }
+
+    with transfers_lock:
+        transfers[transfer_id] = {
+            "id": transfer_id, "type": "upload", "filename": filename,
+            "src": "local", "dst": remote, "total": total_size,
+            "transferred": 0, "speed": 0, "status": "active",
+            "phase": "receiving chunks", "started": time.time(),
+        }
+
+    return jsonify({"ok": True, "transfer_id": transfer_id})
+
+
+@app.route("/api/upload_chunk", methods=["POST"])
+def api_upload_chunk():
+    """Receive one chunk and append to temp file."""
+    transfer_id = request.form.get("transfer_id", "")
+    chunk_index = int(request.form.get("chunk_index", 0))
+    f = request.files.get("chunk")
+    if not f or not transfer_id:
+        return jsonify({"error": "Missing chunk or transfer_id"}), 400
+
+    with pending_uploads_lock:
+        info = pending_uploads.get(transfer_id)
+    if not info:
+        return jsonify({"error": "Unknown transfer_id"}), 404
+
+    chunk_data = f.read()
+    with open(info["tmp_path"], "ab") as fp:
+        fp.write(chunk_data)
+
+    info["received"] += len(chunk_data)
+
+    with transfers_lock:
+        if transfer_id in transfers:
+            elapsed = time.time() - transfers[transfer_id]["started"]
+            speed = info["received"] / elapsed if elapsed > 0 else 0
+            transfers[transfer_id].update({
+                "transferred": info["received"],
+                "speed": speed,
+                "phase": "receiving chunks",
+            })
+
+    return jsonify({"ok": True, "received": info["received"], "chunk_index": chunk_index})
+
+
+@app.route("/api/upload_finish", methods=["POST"])
+def api_upload_finish():
+    """All chunks received — send temp file to PS4 via FTP."""
+    data = request.json
+    transfer_id = data.get("transfer_id", "")
+
+    with pending_uploads_lock:
+        info = pending_uploads.get(transfer_id)
+    if not info:
+        return jsonify({"error": "Unknown transfer_id"}), 404
+
+    with transfers_lock:
+        if transfer_id in transfers:
+            transfers[transfer_id]["phase"] = "sending to PS4"
+
+    def do_ftp_upload():
+        try:
+            ftp = get_ftp()
+            ftp.sock.settimeout(None)
+            ensure_dir_exists(ftp, info["dest"])
+
+            file_size = os.path.getsize(info["tmp_path"])
+            uploaded = [0]
+            start = time.time()
+
+            with open(info["tmp_path"], "rb") as fp:
+                class FTPReader:
+                    def read(self, size=262144):
+                        d = fp.read(size)
+                        if d:
+                            uploaded[0] += len(d)
+                            elapsed = time.time() - start
+                            speed = uploaded[0] / elapsed if elapsed > 0 else 0
+                            with transfers_lock:
+                                if transfer_id in transfers:
+                                    transfers[transfer_id].update({
+                                        "transferred": uploaded[0],
+                                        "total": file_size,
+                                        "speed": speed,
+                                        "phase": "sending to PS4",
+                                    })
+                        return d
+
+                ftp.storbinary(f"STOR {info['remote']}", FTPReader(), blocksize=262144)
+
+            ftp.quit()
+
+            with transfers_lock:
+                if transfer_id in transfers:
+                    transfers[transfer_id].update({"status": "done", "transferred": file_size})
+
+            with pending_uploads_lock:
+                pending_uploads.pop(transfer_id, None)
+
+            try:
+                os.unlink(info["tmp_path"])
+            except:
+                pass
+
+        except Exception as e:
+            with transfers_lock:
+                if transfer_id in transfers:
+                    transfers[transfer_id].update({"status": "error", "error": str(e)})
+
+    thread = threading.Thread(target=do_ftp_upload, daemon=True)
+    thread.start()
+    return jsonify({"ok": True, "transfer_id": transfer_id})
 
 
 @app.route("/api/system_info")

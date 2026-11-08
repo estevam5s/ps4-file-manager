@@ -2,595 +2,458 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PS4 File Manager</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230070d1'/><path d='M7 16a4 4 0 118 0 4 4 0 01-8 0zm9-5a2 2 0 014 0v10a2 2 0 01-4 0V11zm6 2a3 3 0 016 0v6a3 3 0 01-6 0v-6z' fill='white' opacity='.9'/></svg>">
+<link rel="icon" type="image/svg+xml" href="/favicon.ico">
 <style>
-:root{--bg:#0a0a12;--bg-card:#12121e;--bg-hover:#1a1a2e;--bg-selected:#1e3a5f;--border:#22223a;--text:#e0e0e8;--text-dim:#7a7a96;--accent:#0070d1;--accent-glow:#0090ff;--accent-bg:rgba(0,112,209,.08);--danger:#d14040;--success:#40b060;--warning:#d1a040;--sidebar-w:240px;--header-h:0px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;--mono:'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;--radius:8px;--shadow:0 2px 12px rgba(0,0,0,.3)}
+:root{--bg:#0a0a12;--bg-card:#12121e;--bg-hover:#1a1a2e;--bg-selected:#1e3a5f;--border:#2a2a3e;--text:#e0e0e8;--text-dim:#8888a0;--accent:#0070d1;--accent-glow:#0090ff;--danger:#d14040;--success:#40b060;--warning:#d1a040;--ps-blue:#0070d1;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;--mono:'SF Mono','Fira Code','Cascadia Code',monospace;--sidebar-w:240px}
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
-body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
 a{color:var(--accent);text-decoration:none}
-
-/* ── Sidebar ── */
-.sidebar{width:var(--sidebar-w);background:#0d0d1a;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;z-index:50;transition:transform .25s}
-.sidebar-brand{padding:20px 20px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
-.sidebar-brand svg{width:36px;height:36px;flex-shrink:0}
-.sidebar-brand-text{font-size:15px;font-weight:700;letter-spacing:-.3px;line-height:1.2}
-.sidebar-brand-sub{font-size:11px;color:var(--text-dim);font-weight:400}
-.sidebar-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px}
-.nav-link{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius);font-size:14px;color:var(--text-dim);cursor:pointer;transition:all .15s;user-select:none;font-weight:500}
-.nav-link:hover{background:var(--bg-hover);color:var(--text)}
-.nav-link.active{background:var(--accent-bg);color:var(--accent-glow)}
-.nav-link .nav-icon{width:20px;text-align:center;font-size:16px;flex-shrink:0}
-.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)}
-.sidebar-footer .conn{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.conn-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;animation:pulse 2s ease-in-out infinite}
-.conn-dot.on{background:var(--success)}.conn-dot.off{background:var(--danger)}
+.app-shell{display:flex;flex:1;min-height:0}
+.sidebar{width:var(--sidebar-w);background:var(--bg-card);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:100;transition:transform .3s}
+.sidebar.collapsed{transform:translateX(calc(-1 * var(--sidebar-w)))}
+.main{flex:1;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh;transition:margin-left .3s}
+.main.full{margin-left:0}
+.sidebar-logo{padding:20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.sidebar-logo svg{width:36px;height:36px;flex-shrink:0}
+.sidebar-logo .title{font-size:15px;font-weight:700;line-height:1.2}
+.sidebar-logo .sub{font-size:11px;color:var(--text-dim)}
+.sidebar-nav{padding:12px 8px;flex:1;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--text-dim);transition:all .15s;user-select:none;margin-bottom:2px}
+.nav-item:hover{background:var(--bg-hover);color:var(--text)}
+.nav-item.active{background:rgba(0,112,209,.15);color:var(--accent-glow);font-weight:500}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nav-badge{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:10px;font-size:11px;font-weight:600;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center}
+.nav-section{padding:8px 14px 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);margin-top:8px}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim)}
+.sidebar-footer .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;animation:pulse 2s ease-in-out infinite}
+.sidebar-footer .dot.on{background:var(--success)}.sidebar-footer .dot.off{background:var(--danger)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-/* ── Main ── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.page{flex:1;overflow-y:auto;padding:24px;animation:fadeIn .2s}
-@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.page-title{font-size:22px;font-weight:700;margin-bottom:20px;letter-spacing:-.3px}
-
-/* ── Mobile ── */
-.hamburger{display:none;position:fixed;top:12px;left:12px;z-index:60;width:40px;height:40px;border-radius:var(--radius);background:var(--bg-card);border:1px solid var(--border);cursor:pointer;align-items:center;justify-content:center;font-size:20px;color:var(--text)}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
-@media(max-width:768px){
-  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);z-index:50}
-  .sidebar.open{transform:translateX(0)}
-  .hamburger{display:flex}
-  .overlay.show{display:block}
-  .page{padding:16px;padding-top:56px}
-}
-
-/* ── Cards ── */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:24px}
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:all .2s}
-.card:hover{border-color:rgba(0,112,209,.3);box-shadow:var(--shadow)}
-.card-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600}
-.card-value{font-size:28px;font-weight:700;letter-spacing:-.5px}
-.card-sub{font-size:12px;color:var(--text-dim);margin-top:4px}
-.card-value.green{color:var(--success)}.card-value.red{color:var(--danger)}.card-value.blue{color:var(--accent-glow)}
-
-/* ── Buttons ── */
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg-card);position:sticky;top:0;z-index:50}
+.topbar-title{font-size:18px;font-weight:600;flex:1}
+.topbar .bi{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:16px}
+.topbar .bi:hover{background:var(--bg-hover);color:var(--text)}
+.menu-toggle{display:none}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text);font-size:13px;cursor:pointer;transition:all .15s;font-family:var(--font);white-space:nowrap}
-.btn:hover{background:var(--bg-hover);border-color:var(--accent)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:hover{background:var(--bg-hover);border-color:var(--accent)}.btn.primary{background:var(--ps-blue);border-color:var(--ps-blue);color:#fff}.btn.primary:hover{background:var(--accent-glow)}
+.btn.danger{border-color:rgba(209,64,64,.3)}.btn.danger:hover{border-color:var(--danger);color:var(--danger);background:rgba(209,64,64,.1)}
+.btn.success{border-color:rgba(64,176,96,.3)}.btn.success:hover{border-color:var(--success);color:var(--success);background:rgba(64,176,96,.1)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-sm{padding:5px 10px;font-size:12px}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.primary:hover{background:var(--accent-glow)}
-.btn.danger:hover{border-color:var(--danger);color:var(--danger)}
-.btn.success:hover{border-color:var(--success);color:var(--success)}
-.btn-group{display:flex;gap:6px;flex-wrap:wrap}
-
-/* ── Toolbar ── */
-.toolbar{display:flex;align-items:center;gap:8px;padding:0 0 16px;flex-wrap:wrap}
+.dashboard{padding:24px;display:flex;flex-direction:column;gap:24px}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s}
+.stat-card:hover{border-color:rgba(0,112,209,.3)}
+.stat-card .label{font-size:12px;font-weight:500;color:var(--text-dim);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+.stat-card .value{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.stat-card .detail{font-size:12px;color:var(--text-dim);margin-top:4px}
+.quick-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.quick-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
+.quick-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.quick-card .qicon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.quick-card .qicon.blue{background:rgba(0,112,209,.15);color:var(--accent-glow)}
+.quick-card .qicon.green{background:rgba(64,176,96,.15);color:var(--success)}
+.quick-card .qicon.orange{background:rgba(209,160,64,.15);color:var(--warning)}
+.quick-card .qicon.red{background:rgba(209,64,64,.15);color:var(--danger)}
+.quick-card .qinfo .qtitle{font-size:14px;font-weight:600}.quick-card .qinfo .qdesc{font-size:12px;color:var(--text-dim)}
+.breadcrumb-bar{display:flex;align-items:center;gap:4px;padding:10px 24px;background:var(--bg-card);border-bottom:1px solid var(--border);font-size:13px;overflow-x:auto;flex-wrap:nowrap}
+.breadcrumb-item{color:var(--accent);cursor:pointer;white-space:nowrap;padding:2px 6px;border-radius:4px}.breadcrumb-item:hover{background:var(--bg-hover)}.breadcrumb-sep{color:var(--text-dim)}.breadcrumb-current{color:var(--text);cursor:default}
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 24px;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap}
 .toolbar-spacer{flex:1}
 .search-box{padding:7px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text);font-size:13px;width:200px;font-family:var(--font)}.search-box::placeholder{color:var(--text-dim)}.search-box:focus{outline:none;border-color:var(--accent)}
-
-/* ── Breadcrumb ── */
-.breadcrumb{display:flex;align-items:center;gap:2px;padding:0 0 12px;font-size:13px;overflow-x:auto;flex-wrap:nowrap}
-.bc-item{color:var(--accent);cursor:pointer;padding:2px 6px;border-radius:4px;white-space:nowrap}.bc-item:hover{background:var(--bg-hover)}
-.bc-sep{color:var(--text-dim);padding:0 2px}.bc-current{color:var(--text);cursor:default}
-
-/* ── File list ── */
-.fheader{display:grid;grid-template-columns:28px 1fr 90px 130px 100px;gap:8px;padding:8px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);border-bottom:1px solid var(--border);user-select:none;background:var(--bg-card);border-radius:var(--radius) var(--radius) 0 0}
-.frow{display:grid;grid-template-columns:28px 1fr 90px 130px 100px;gap:8px;padding:8px 12px;align-items:center;border-bottom:1px solid rgba(34,34,58,.4);cursor:pointer;transition:background .1s}
-.frow:hover{background:var(--bg-hover)}.frow.selected{background:var(--bg-selected)}.frow.cut{opacity:.45}
-.frow:last-child{border-bottom:none}
-.ficon{font-size:18px;text-align:center}
-.fname{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fname.dir{color:var(--accent-glow);font-weight:500}
-.fsize{font-size:12px;color:var(--text-dim);text-align:right;font-family:var(--mono)}
-.fdate{font-size:12px;color:var(--text-dim)}.fperms{font-size:11px;color:var(--text-dim);font-family:var(--mono)}
-.file-list-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-
-/* ── Clipboard bar ── */
-.clip-bar{padding:8px 12px;background:var(--accent-bg);border:1px solid rgba(0,112,209,.2);border-radius:var(--radius);display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:12px}
-.clip-bar .clip-path{font-family:var(--mono);color:var(--accent-glow);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* ── Apps grid ── */
-.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
-.app-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .2s}
-.app-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow)}
-.app-icon-area{height:130px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a1628,#162040)}
-.app-icon-area img{max-height:110px;max-width:110px;border-radius:8px}
-.app-ph{width:72px;height:72px;border-radius:12px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--text-dim)}
-.app-body{padding:14px 16px}.app-title{font-size:14px;font-weight:600;margin-bottom:4px}.app-meta{font-size:11px;color:var(--text-dim);margin-bottom:2px;font-family:var(--mono)}
-.app-actions{padding:0 16px 14px;display:flex;gap:6px}.app-actions .btn{flex:1;justify-content:center;font-size:12px;padding:5px 8px}
-
-/* ── PKG rows ── */
-.pkg-section{margin-bottom:24px}
-.pkg-section-title{font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.pkg-section-title .cnt{font-size:12px;color:var(--text-dim);font-weight:400}
-.pkg-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;background:var(--bg-card);transition:all .15s}
+.file-header{display:grid;grid-template-columns:32px 1fr 100px 140px 110px;gap:8px;padding:8px 24px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);border-bottom:1px solid var(--border);user-select:none}
+.file-row{display:grid;grid-template-columns:32px 1fr 100px 140px 110px;gap:8px;padding:8px 24px;align-items:center;border-bottom:1px solid rgba(42,42,62,.5);cursor:pointer;transition:background .1s}.file-row:hover{background:var(--bg-hover)}.file-row.selected{background:var(--bg-selected)}.file-row.cut{opacity:.5}
+.file-icon{font-size:20px;text-align:center}.file-name{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-name.dir{color:var(--accent-glow);font-weight:500}
+.file-size{font-size:13px;color:var(--text-dim);text-align:right;font-family:var(--mono)}.file-date{font-size:12px;color:var(--text-dim)}.file-perms{font-size:12px;color:var(--text-dim);font-family:var(--mono)}
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:24px}
+.app-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .2s}.app-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.app-icon-area{height:140px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a1628,#162040)}.app-icon-area img{max-height:120px;max-width:120px;border-radius:8px}
+.app-icon-placeholder{width:80px;height:80px;border-radius:12px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--text-dim)}
+.app-info{padding:14px 16px}.app-title{font-size:15px;font-weight:600;margin-bottom:4px}.app-meta{font-size:12px;color:var(--text-dim);margin-bottom:2px}
+.app-actions{padding:0 16px 14px;display:flex;gap:8px}.app-actions .btn{flex:1;justify-content:center;font-size:12px;padding:6px 10px}
+.pkg-section{padding:16px 24px;border-bottom:1px solid var(--border)}
+.pkg-section h3{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.pkg-section h3 .count{font-size:12px;color:var(--text-dim);font-weight:400}
+.pkg-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg);transition:all .15s}
 .pkg-row:hover{border-color:var(--accent);background:var(--bg-hover)}
-.pkg-icon{font-size:22px}.pkg-info{flex:1;min-width:0}
-.pkg-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pkg-path{font-size:11px;color:var(--text-dim);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pkg-sz{font-size:12px;color:var(--text-dim);font-family:var(--mono);white-space:nowrap;margin-right:8px}
-
-/* ── Transfer / Upload ── */
-.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:48px 24px;text-align:center;transition:all .2s;cursor:pointer;margin-bottom:24px}
-.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:var(--accent-bg)}
-.upload-zone .uz-icon{font-size:40px;color:var(--text-dim);margin-bottom:8px}
-.upload-zone p{color:var(--text-dim);font-size:14px}
-.upload-zone .uz-sub{font-size:12px;margin-top:4px}
-.dest-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;font-size:13px}
-.dest-bar strong{color:var(--accent-glow);font-family:var(--mono)}
-
-.xfer-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px}
-.xfer-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px}
-.xfer-head .xf-name{font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.xfer-head .xf-status{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:600}
-.xf-active{background:rgba(0,112,209,.15);color:var(--accent-glow)}.xf-done{background:rgba(64,176,96,.15);color:var(--success)}.xf-error{background:rgba(209,64,64,.15);color:var(--danger)}
-.xfer-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-bottom:6px}.xfer-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
-.xfer-info{display:flex;gap:14px;font-size:12px;color:var(--text-dim)}
-
-/* ── Settings ── */
-.setting-group{margin-bottom:24px}.setting-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
-.setting-input{padding:10px 14px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text);font-size:14px;font-family:var(--mono);width:100%;max-width:500px}
-.setting-input:focus{outline:none;border-color:var(--accent)}
-.setting-hint{font-size:12px;color:var(--text-dim);margin-top:4px}
-
-/* ── Modals / Preview ── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center}
-.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:340px;max-width:500px}
-.modal h3{margin-bottom:16px;font-size:16px}
-.modal input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:14px;font-family:var(--mono);margin-bottom:14px}
-.modal input:focus{outline:none;border-color:var(--accent)}
-.modal-btns{display:flex;gap:8px;justify-content:flex-end}
-.preview-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:center;justify-content:center}
-.preview{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:90%;max-width:800px;max-height:80vh;overflow:auto;padding:24px}
-.preview h3{font-size:15px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
-.preview pre{background:var(--bg);padding:14px;border-radius:var(--radius);font-family:var(--mono);font-size:13px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:55vh}
-.preview img{max-width:100%;border-radius:var(--radius)}
-.sfo-tbl{width:100%;border-collapse:collapse}.sfo-tbl td{padding:6px 10px;border-bottom:1px solid var(--border);font-size:13px}.sfo-tbl td:first-child{font-weight:600;color:var(--accent);width:180px;font-family:var(--mono)}
-
-/* ── Context menu ── */
-.ctx{position:fixed;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:4px;z-index:250;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
-.ctx-item{padding:8px 12px;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;gap:8px}.ctx-item:hover{background:var(--bg-hover)}
-.ctx-sep{height:1px;background:var(--border);margin:4px 0}
-
-/* ── Quick actions ── */
-.quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:8px}
-.quick-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .15s;text-align:center}
-.quick-card:hover{border-color:var(--accent);background:var(--bg-hover);transform:translateY(-1px)}
-.quick-card .qi{font-size:28px;margin-bottom:6px}.quick-card .qt{font-size:13px;font-weight:500}
-
-/* ── Toast ── */
-.toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:var(--radius);font-size:13px;z-index:400;animation:toastIn .3s;max-width:360px}
-.toast.success{background:var(--success);color:#fff}.toast.error{background:var(--danger);color:#fff}
-@keyframes toastIn{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
-
-.empty{text-align:center;padding:48px 20px;color:var(--text-dim)}.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--text-dim)}
+.pkg-row .pkg-info{flex:1;min-width:0}
+.pkg-row .pkg-name{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pkg-row .pkg-path{font-size:11px;color:var(--text-dim);font-family:var(--mono)}
+.pkg-row .pkg-size{font-size:13px;color:var(--text-dim);font-family:var(--mono);white-space:nowrap}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;margin:24px;transition:all .2s;cursor:pointer}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(0,112,209,.05)}
+.upload-zone p{color:var(--text-dim);margin-top:8px}
+.transfer-panel{position:fixed;bottom:0;left:var(--sidebar-w);right:0;background:var(--bg-card);border-top:2px solid var(--accent);z-index:150;max-height:300px;overflow-y:auto;transition:transform .3s}
+.transfer-panel.collapsed{transform:translateY(calc(100% - 40px))}
+.transfer-header{padding:10px 24px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg-card);z-index:1}
+.transfer-header h4{font-size:14px;font-weight:600}
+.transfer-item{padding:12px 24px;border-bottom:1px solid rgba(42,42,62,.5);display:flex;flex-direction:column;gap:6px}
+.transfer-item-header{display:flex;align-items:center;gap:12px;font-size:13px}
+.transfer-item-header .filename{font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.transfer-item-header .status{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:500}
+.status-active{background:rgba(0,112,209,.2);color:var(--accent-glow)}.status-done{background:rgba(64,176,96,.2);color:var(--success)}.status-error{background:rgba(209,64,64,.2);color:var(--danger)}
+.transfer-progress{height:4px;background:var(--bg);border-radius:2px;overflow:hidden}.transfer-progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.transfer-info{display:flex;gap:16px;font-size:12px;color:var(--text-dim)}
+.clipboard-bar{padding:8px 24px;background:rgba(0,112,209,.1);border-bottom:1px solid var(--accent);display:flex;align-items:center;gap:12px;font-size:13px}
+.clipboard-bar .path{font-family:var(--mono);color:var(--accent-glow);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preview-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center}
+.preview-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:90%;max-width:800px;max-height:80vh;overflow:auto;padding:24px}
+.preview-panel h3{font-size:16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.preview-panel pre{background:var(--bg);padding:16px;border-radius:8px;font-family:var(--mono);font-size:13px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:60vh}
+.preview-panel img{max-width:100%;border-radius:8px}
+.sfo-table{width:100%;border-collapse:collapse}.sfo-table td{padding:6px 12px;border-bottom:1px solid var(--border);font-size:13px}.sfo-table td:first-child{font-weight:600;color:var(--accent);width:200px;font-family:var(--mono)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:360px;max-width:500px}
+.modal h3{margin-bottom:16px}.modal input[type="text"]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:14px;font-family:var(--mono);margin-bottom:12px}.modal input:focus{outline:none;border-color:var(--accent)}
+.modal-buttons{display:flex;gap:8px;justify-content:flex-end}
+.ctx-menu{position:fixed;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:4px;z-index:250;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.ctx-item{padding:8px 14px;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;gap:8px}.ctx-item:hover{background:var(--bg-hover)}.ctx-sep{height:1px;background:var(--border);margin:4px 0}
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--text-dim);gap:12px}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:14px;z-index:400;animation:slideIn .3s ease-out}.toast.success{background:var(--success);color:#fff}.toast.error{background:var(--danger);color:#fff}@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .hidden{display:none!important}
-
-@media(max-width:768px){
-  .fheader,.frow{grid-template-columns:28px 1fr 70px}.fdate,.fperms{display:none}
-  .cards{grid-template-columns:1fr 1fr}
-  .apps-grid{grid-template-columns:1fr}
-}
+.config-panel{padding:24px}.config-panel h2{font-size:18px;margin-bottom:16px}
+.config-group{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.config-group label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px}
+.config-group input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:14px;font-family:var(--mono)}.config-group input:focus{outline:none;border-color:var(--accent)}
+@media(max-width:768px){.sidebar{transform:translateX(calc(-1 * var(--sidebar-w)))}.sidebar.open{transform:translateX(0)}.main{margin-left:0!important}.menu-toggle{display:flex}.file-header,.file-row{grid-template-columns:32px 1fr 80px}.file-date,.file-perms{display:none}.apps-grid{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}.transfer-panel{left:0}}
 </style>
 </head>
 <body>
-
-<button class="hamburger" id="hamburger" onclick="toggleSidebar()">&#9776;</button>
-<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
+<div class="app-shell">
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-brand">
+  <div class="sidebar-logo">
     <svg viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="8" fill="#0070d1"/><path d="M8 18c0-2 1.5-3.5 3.5-3.5S15 16 15 18s-1.5 3.5-3.5 3.5S8 20 8 18zm10-6c0-1.1.9-2 2-2s2 .9 2 2v12c0 1.1-.9 2-2 2s-2-.9-2-2V12zm7 2.5a2.5 2.5 0 015 0v7a2.5 2.5 0 01-5 0v-7z" fill="#fff" opacity=".9"/></svg>
-    <div><div class="sidebar-brand-text">PS4 File Manager</div><div class="sidebar-brand-sub">GoldHEN FTP</div></div>
+    <div><div class="title">PS4 Manager</div><div class="sub">GoldHEN FTP</div></div>
   </div>
   <nav class="sidebar-nav">
-    <div class="nav-link active" data-route="#/" onclick="go('#/')"><span class="nav-icon">&#9638;</span> Dashboard</div>
-    <div class="nav-link" data-route="#/files" onclick="go('#/files')"><span class="nav-icon">&#128193;</span> Arquivos</div>
-    <div class="nav-link" data-route="#/apps" onclick="go('#/apps')"><span class="nav-icon">&#127918;</span> Apps</div>
-    <div class="nav-link" data-route="#/pkgs" onclick="go('#/pkgs')"><span class="nav-icon">&#128230;</span> PKGs / USB</div>
-    <div class="nav-link" data-route="#/transfer" onclick="go('#/transfer')"><span class="nav-icon">&#8645;</span> Transferir</div>
-    <div class="nav-link" data-route="#/settings" onclick="go('#/settings')"><span class="nav-icon">&#9881;</span> Configurar</div>
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" data-page="dashboard" onclick="go('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" data-page="files" onclick="go('files')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+      Arquivos
+    </div>
+    <div class="nav-item" data-page="apps" onclick="go('apps')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg>
+      Apps <span id="navAppBadge" class="nav-badge" style="display:none">0</span>
+    </div>
+    <div class="nav-section">USB</div>
+    <div class="nav-item" data-page="pkgs" onclick="go('pkgs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+      PKGs / USB
+    </div>
+    <div class="nav-item" data-page="upload" onclick="go('upload')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Transferir
+    </div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" data-page="config" onclick="go('config')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Configuracoes
+    </div>
   </nav>
-  <div class="sidebar-footer">
-    <div class="conn"><div class="conn-dot off" id="sidebarDot"></div><span id="sidebarStatus">Offline</span></div>
-    <div id="sidebarIp" style="font-family:var(--mono);font-size:11px">—</div>
-  </div>
+  <div class="sidebar-footer" id="sidebarFooter"><span class="dot off" id="footerDot"></span><span id="footerStatus">Desconectado</span></div>
 </aside>
 
-<div class="main">
-  <div class="page" id="page"></div>
+<div class="main" id="mainContent">
+  <div class="topbar">
+    <button class="bi menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+    <div class="topbar-title" id="pageTitle">Dashboard</div>
+    <button class="bi" onclick="checkStatus()" title="Testar conexao">&#8635;</button>
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim)">
+      <span class="dot off" id="topDot" style="width:8px;height:8px;border-radius:50%;display:inline-block"></span>
+      <span id="statusText">Conectando...</span>
+    </div>
+  </div>
+  <div id="clipboardBar" class="clipboard-bar hidden">
+    <span id="clipboardMode">COPIAR</span>: <span id="clipboardPath" class="path"></span>
+    <button class="btn btn-sm" onclick="clipboardPaste()">Colar aqui</button>
+    <button class="btn btn-sm" onclick="clipboardClear()">Cancelar</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="dashboard">
+    <div class="stats-row">
+      <div class="stat-card"><div class="label">Apps Instalados</div><div class="value" style="color:var(--accent-glow)" id="dApps">--</div><div class="detail" id="dAppsD">Carregando...</div></div>
+      <div class="stat-card"><div class="label">Status FTP</div><div class="value" id="dStatus">--</div><div class="detail" id="dStatusD">Verificando...</div></div>
+      <div class="stat-card"><div class="label">Espaco em Apps</div><div class="value" style="color:var(--warning)" id="dSpace">--</div><div class="detail" id="dSpaceD">Calculando...</div></div>
+      <div class="stat-card"><div class="label">USB</div><div class="value" id="dUSB">--</div><div class="detail" id="dUSBD">Verificando...</div></div>
+    </div>
+    <h3 style="font-size:16px;font-weight:600;color:var(--text-dim)">Acesso Rapido</h3>
+    <div class="quick-nav">
+      <div class="quick-card" onclick="go('files');navigateTo('/')"><div class="qicon blue">&#128193;</div><div class="qinfo"><div class="qtitle">Raiz /</div><div class="qdesc">Diretorio raiz do PS4</div></div></div>
+      <div class="quick-card" onclick="go('files');navigateTo('/user/app')"><div class="qicon green">&#127918;</div><div class="qinfo"><div class="qtitle">Apps</div><div class="qdesc">/user/app</div></div></div>
+      <div class="quick-card" onclick="go('files');navigateTo('/mnt/usb0')"><div class="qicon orange">&#128190;</div><div class="qinfo"><div class="qtitle">USB 0</div><div class="qdesc">/mnt/usb0</div></div></div>
+      <div class="quick-card" onclick="go('files');navigateTo('/system_data')"><div class="qicon red">&#9881;</div><div class="qinfo"><div class="qtitle">System Data</div><div class="qdesc">/system_data</div></div></div>
+      <div class="quick-card" onclick="go('upload')"><div class="qicon blue">&#8593;</div><div class="qinfo"><div class="qtitle">Upload</div><div class="qdesc">Enviar arquivos</div></div></div>
+      <div class="quick-card" onclick="go('files');navigateTo('/user/home')"><div class="qicon green">&#127968;</div><div class="qinfo"><div class="qtitle">Home</div><div class="qdesc">/user/home</div></div></div>
+    </div>
+  </div>
+
+  <!-- FILES -->
+  <div id="page-files" class="hidden">
+    <div class="breadcrumb-bar" id="breadcrumb"></div>
+    <div class="toolbar">
+      <button class="btn btn-sm" onclick="navigateTo(currentPath)">&#x21bb; Refresh</button>
+      <button class="btn btn-sm" onclick="goUp()">&#x2191; Voltar</button>
+      <button class="btn btn-sm" onclick="showMkdir()">+ Pasta</button>
+      <button class="btn btn-sm" id="btnRename" onclick="showRename()" style="display:none">Renomear</button>
+      <button class="btn btn-sm success" id="btnCopy" onclick="clipboardCopy('copy')" style="display:none">Copiar</button>
+      <button class="btn btn-sm success" id="btnCut" onclick="clipboardCopy('move')" style="display:none">Mover</button>
+      <button class="btn btn-sm danger" id="btnDelete" onclick="deleteSelected()" style="display:none">Excluir</button>
+      <div class="toolbar-spacer"></div>
+      <input type="text" class="search-box" placeholder="Filtrar..." oninput="filterFiles(this.value)">
+    </div>
+    <div class="file-header"><div></div><div>Nome</div><div style="text-align:right">Tamanho</div><div>Data</div><div>Permissoes</div></div>
+    <div id="fileList"></div>
+  </div>
+
+  <!-- APPS -->
+  <div id="page-apps" class="hidden">
+    <div class="toolbar"><button class="btn" onclick="loadApps()">&#x21bb; Recarregar</button><div class="toolbar-spacer"></div><span style="font-size:12px;color:var(--text-dim)" id="appsCount"></span></div>
+    <div id="appsList" class="apps-grid"></div>
+  </div>
+
+  <!-- PKGS -->
+  <div id="page-pkgs" class="hidden">
+    <div class="toolbar"><button class="btn" onclick="scanUSB()">&#x21bb; Escanear USB</button><div class="toolbar-spacer"></div><span style="font-size:12px;color:var(--text-dim)">Todos os .pkg nos pendrives</span></div>
+    <div id="pkgList"></div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="page-upload" class="hidden">
+    <div class="breadcrumb-bar">
+      Destino: <strong id="uploadDest" style="margin-left:8px">/mnt/usb0</strong>
+      <button class="btn btn-sm" style="margin-left:8px" onclick="pickDest('/mnt/usb0')">USB0</button>
+      <button class="btn btn-sm" onclick="pickDest('/mnt/usb1')">USB1</button>
+      <button class="btn btn-sm" onclick="pickDest('/user/app')">App</button>
+      <button class="btn btn-sm" onclick="promptDest()">Outro...</button>
+    </div>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div style="font-size:48px;color:var(--text-dim)">&#x2191;</div>
+      <p><strong>Arraste .pkg ou qualquer arquivo aqui</strong></p>
+      <p style="font-size:12px;margin-top:4px">Suporta arquivos grandes (&gt;1GB)</p>
+      <p style="font-size:11px;margin-top:4px;color:var(--text-dim)">Destino: <code id="uploadDestPath">/mnt/usb0</code></p>
+      <input type="file" id="fileInput" style="display:none" multiple onchange="uploadFiles(this.files)">
+    </div>
+    <div id="uploadLog" style="padding:0 24px"></div>
+  </div>
+
+  <!-- CONFIG -->
+  <div id="page-config" class="hidden">
+    <div class="config-panel">
+      <h2>Configuracoes</h2>
+      <div class="config-group">
+        <label>API URL (Backend)</label>
+        <input type="text" id="cfgApi" value="" placeholder="http://localhost:8090">
+        <p style="font-size:12px;color:var(--text-dim);margin-top:4px">URL do servidor Python. Mude se o backend roda em outra maquina.</p>
+      </div>
+      <div class="config-group">
+        <label>IP do PS4</label>
+        <input type="text" value="192.168.1.101" readonly>
+        <p style="font-size:12px;color:var(--text-dim);margin-top:4px">Configurado no backend via variavel PS4_IP.</p>
+      </div>
+      <button class="btn primary" onclick="saveConfig()">Salvar</button>
+    </div>
+  </div>
+</div>
 </div>
 
-<div id="ctxMenu" class="ctx hidden"></div>
+<!-- TRANSFER PANEL -->
+<div id="transferPanel" class="transfer-panel collapsed hidden">
+  <div class="transfer-header" onclick="toggleTP()">
+    <h4>Transferencias <span id="transferCount" class="nav-badge" style="font-size:11px">0</span></h4>
+    <button class="btn btn-sm" onclick="event.stopPropagation();clearDone()">Limpar</button>
+    <span style="margin-left:auto;font-size:18px;color:var(--text-dim)">&#x25B2;</span>
+  </div>
+  <div id="transferList"></div>
+</div>
+
+<div id="previewOverlay" class="preview-overlay hidden" onclick="if(event.target===this)closePV()">
+  <div class="preview-panel"><h3><span id="pvTitle"></span><button class="btn btn-sm" onclick="closePV()">&#x2715;</button></h3><div id="pvContent"></div></div>
+</div>
+<div id="modalOverlay" class="modal-overlay hidden" onclick="if(event.target===this)closeModal()">
+  <div class="modal"><h3 id="modalTitle"></h3><input type="text" id="modalInput"><div class="modal-buttons"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" id="modalOk" onclick="modalConfirm()"></button></div></div>
+</div>
+<div id="ctxMenu" class="ctx-menu hidden"></div>
 
 <script>
-/* ════════════════════════════════════════════
-   State
-   ════════════════════════════════════════════ */
-let currentPath="/",currentItems=[],selectedItem=null,selectedIdx=-1;
-let clipboard=null; // {path,name,is_dir,mode}
-let modalCb=null;
-let ps4Status={connected:false,ip:"—",port:2121,server:""};
-let uploadDest="/mnt/usb0";
-let activeTransfers={}; // id -> {filename,total,loaded,speed,status,startTime,phase,error,dst}
-let xferPollId=null;
+const API=localStorage.getItem("ps4fm_api")||"";
+let currentPath="/",currentItems=[],selectedItem=null,selectedIndex=-1,clipboard=null,modalCallback=null,uploadDest="/mnt/usb0",tpTimer=null;
 
-/* ════════════════════════════════════════════
-   API helpers
-   ════════════════════════════════════════════ */
-function getApiUrl(){
-  try{const u=localStorage.getItem("ps4fm_api_url");if(u)return u.replace(/\/$/,"")}catch{}
-  return window.location.origin==="null"?"http://localhost:8090":window.location.origin;
-}
-function api(path){return getApiUrl()+path}
-async function apiFetch(path,opts){const r=await fetch(api(path),opts);return r.json()}
+function ap(p){return API+p}
+function humanSize(b){if(!b||b===0)return"0 B";const u=["B","KB","MB","GB","TB"],i=Math.floor(Math.log(b)/Math.log(1024));return(b/Math.pow(1024,i)).toFixed(i>0?1:0)+" "+u[i]}
+function humanSpeed(b){return b?humanSize(b)+"/s":""}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function toast(msg,type="success"){const t=document.createElement("div");t.className=`toast ${type}`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),4000)}
 
-/* ════════════════════════════════════════════
-   Routing
-   ════════════════════════════════════════════ */
-function go(hash){location.hash=hash;closeSidebar()}
-function getRoute(){const h=location.hash||"#/";if(h.startsWith("#/files"))return"files";if(h==="#/apps")return"apps";if(h==="#/pkgs")return"pkgs";if(h==="#/transfer")return"transfer";if(h==="#/settings")return"settings";return"dashboard"}
-function getFilePath(){const h=location.hash||"";if(!h.startsWith("#/files"))return"/";const p=h.slice(7);return p?"/"+p:"/"}
-
-function route(){
-  const r=getRoute();
-  document.querySelectorAll(".nav-link").forEach(n=>{
-    const nr=n.dataset.route;
-    n.classList.toggle("active",r==="files"?nr==="#/files":r==="dashboard"?nr==="#/":nr===`#/${r}`)
-  });
-  const pg=document.getElementById("page");
-  switch(r){
-    case"dashboard":renderDashboard(pg);break;
-    case"files":renderFiles(pg);break;
-    case"apps":renderApps(pg);break;
-    case"pkgs":renderPkgs(pg);break;
-    case"transfer":renderTransfer(pg);break;
-    case"settings":renderSettings(pg);break;
-  }
-}
-window.addEventListener("hashchange",route);
-
-/* ════════════════════════════════════════════
-   Sidebar mobile
-   ════════════════════════════════════════════ */
-function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlay").classList.toggle("show")}
-function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("show")}
-
-/* ════════════════════════════════════════════
-   Status polling
-   ════════════════════════════════════════════ */
-async function pollStatus(){
-  try{
-    const d=await apiFetch("/api/status");
-    ps4Status=d;
-    const dot=document.getElementById("sidebarDot"),st=document.getElementById("sidebarStatus"),ip=document.getElementById("sidebarIp");
-    if(d.connected){dot.className="conn-dot on";st.textContent="Online";ip.textContent=`${d.ip}:${d.port}`}
-    else{dot.className="conn-dot off";st.textContent="Offline";ip.textContent="—"}
-  }catch{ps4Status.connected=false;document.getElementById("sidebarDot").className="conn-dot off";document.getElementById("sidebarStatus").textContent="Erro"}
+function go(page){
+  ["dashboard","files","apps","pkgs","upload","config"].forEach(p=>{const el=document.getElementById(`page-${p}`);if(el)el.classList.toggle("hidden",p!==page)});
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.page===page));
+  document.getElementById("pageTitle").textContent={dashboard:"Dashboard",files:"Arquivos",apps:"Apps Instalados",pkgs:"PKGs / USB",upload:"Transferir",config:"Configuracoes"}[page]||page;
+  location.hash=page;
+  if(page==="apps")loadApps();if(page==="pkgs")scanUSB();
+  if(page==="files"&&!document.getElementById("fileList").innerHTML)navigateTo(currentPath);
+  if(page==="upload"){document.getElementById("uploadDest").textContent=uploadDest;document.getElementById("uploadDestPath").textContent=uploadDest}
+  if(page==="config")document.getElementById("cfgApi").value=API;
+  if(window.innerWidth<769)document.getElementById("sidebar").classList.remove("open");
 }
 
-/* ════════════════════════════════════════════
-   Utilities
-   ════════════════════════════════════════════ */
-function humanSize(b){if(!b||b<=0)return"0 B";const u=["B","KB","MB","GB","TB"],i=Math.floor(Math.log(b)/Math.log(1024));return(b/Math.pow(1024,i)).toFixed(i>0?1:0)+" "+u[i]}
-function humanSpeed(b){return b?humanSize(b)+"/s":"—"}
-function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
-function fileIcon(n){const e=(n.split(".").pop()||"").toLowerCase();return{pkg:"\u{1F4E6}",sfo:"⚙",json:"\u{1F4CB}",xml:"\u{1F4C4}",png:"\u{1F5BC}",jpg:"\u{1F5BC}",jpeg:"\u{1F5BC}",gif:"\u{1F5BC}",dds:"\u{1F5BC}",txt:"\u{1F4DD}",log:"\u{1F4DD}",db:"\u{1F5C4}",dat:"\u{1F5C4}",at9:"\u{1F3B5}",mp3:"\u{1F3B5}",mp4:"\u{1F3AC}",sh:"\u{1F4DC}",py:"\u{1F4DC}",pbm:"\u{1F512}"}[e]||"\u{1F4C4}"}
-function toast(msg,type="success"){const t=document.createElement("div");t.className="toast "+type;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),4000)}
-
-/* ════════════════════════════════════════════
-   Dashboard
-   ════════════════════════════════════════════ */
-async function renderDashboard(pg){
-  pg.innerHTML=`<div class="page-title">Dashboard</div><div class="cards" id="dashCards"><div class="loading"><div class="spinner"></div> Carregando...</div></div><div class="page-title" style="font-size:16px;margin-top:8px">Acesso rapido</div><div class="quick-grid"><div class="quick-card" onclick="go('#/files')"><div class="qi">&#128193;</div><div class="qt">Explorar arquivos</div></div><div class="quick-card" onclick="go('#/apps')"><div class="qi">&#127918;</div><div class="qt">Apps instalados</div></div><div class="quick-card" onclick="go('#/pkgs')"><div class="qi">&#128230;</div><div class="qt">Escanear USB</div></div><div class="quick-card" onclick="go('#/transfer')"><div class="qi">&#8645;</div><div class="qt">Transferir jogos</div></div></div>`;
-  try{
-    const [status,disk,apps]=await Promise.all([apiFetch("/api/status"),apiFetch("/api/disk_usage").catch(()=>({})),apiFetch("/api/apps").catch(()=>({apps:[]}))]);
-    const appCount=apps.apps?apps.apps.length:0;
-    const totalSize=disk.total_pkg_size||0;
-    const el=document.getElementById("dashCards");
-    if(!el)return;
-    el.innerHTML=`
-      <div class="card"><div class="card-label">Conexao</div><div class="card-value ${status.connected?"green":"red"}">${status.connected?"Online":"Offline"}</div><div class="card-sub">${status.connected?status.server:"Sem conexao com o PS4"}</div></div>
-      <div class="card"><div class="card-label">Apps instalados</div><div class="card-value blue">${appCount}</div><div class="card-sub">${humanSize(totalSize)} em pacotes</div></div>
-      <div class="card"><div class="card-label">IP do PS4</div><div class="card-value" style="font-size:20px;font-family:var(--mono)">${status.ip||"—"}</div><div class="card-sub">Porta ${status.port||"—"}</div></div>
-      <div class="card"><div class="card-label">Servidor FTP</div><div class="card-value" style="font-size:16px">${status.server||"—"}</div><div class="card-sub">API: ${getApiUrl()}</div></div>`;
-  }catch(e){document.getElementById("dashCards").innerHTML=`<div class="card"><div class="card-label">Erro</div><div class="card-value red">!</div><div class="card-sub">${e.message}</div></div>`}
+async function checkStatus(){
+  try{const r=await fetch(ap("/api/status")),d=await r.json();
+    const on=d.connected;
+    document.getElementById("topDot").style.background=on?"var(--success)":"var(--danger)";
+    document.getElementById("footerDot").className="dot "+(on?"on":"off");
+    document.getElementById("statusText").textContent=on?`${d.ip}:${d.port}`:"Offline";
+    document.getElementById("footerStatus").textContent=on?`Conectado ${d.ip}`:"Desconectado";
+    return on;
+  }catch{document.getElementById("topDot").style.background="var(--danger)";document.getElementById("statusText").textContent="Erro";document.getElementById("footerDot").className="dot off";document.getElementById("footerStatus").textContent="Erro";return false}
 }
 
-/* ════════════════════════════════════════════
-   Files
-   ════════════════════════════════════════════ */
-async function renderFiles(pg){
-  const path=getFilePath();currentPath=path;selectedItem=null;selectedIdx=-1;
-  pg.innerHTML=`<div class="page-title">Arquivos</div><div id="clipBar"></div><div id="bcWrap"></div><div id="fileTool"></div><div id="fileWrap"><div class="loading"><div class="spinner"></div></div></div>`;
-  renderClipBar();renderBreadcrumb(path);renderToolbar();
-  await loadDir(path);
+async function loadDash(){
+  const on=await checkStatus();
+  const ds=document.getElementById("dStatus"),dd=document.getElementById("dStatusD");
+  if(on){ds.textContent="Online";ds.style.color="var(--success)";dd.textContent="FTP ativo via GoldHEN"}
+  else{ds.textContent="Offline";ds.style.color="var(--danger)";dd.textContent="PS4 nao encontrado"}
+  if(!on)return;
+  try{const r=await fetch(ap("/api/system_info")),d=await r.json();if(d.error)return;
+    document.getElementById("dApps").textContent=d.app_count||0;
+    document.getElementById("dAppsD").textContent=`${humanSize(d.total_pkg_size||0)} em pacotes`;
+    document.getElementById("dSpace").textContent=humanSize(d.total_pkg_size||0);
+    document.getElementById("dSpaceD").textContent=`${d.app_count||0} apps instalados`;
+    const nb=document.getElementById("navAppBadge");if(d.app_count>0){nb.textContent=d.app_count;nb.style.display=""}
+    let uc=0,ut="";if(d.usb)for(const[k,v]of Object.entries(d.usb)){if(v.mounted){uc++;ut+=k.split("/").pop()+" "}}
+    document.getElementById("dUSB").textContent=uc>0?uc+" montado":"Nenhum";
+    document.getElementById("dUSBD").textContent=uc>0?ut.trim():"Nenhum USB detectado";
+    if(d.firmware)dd.textContent=`FW ${d.firmware} via GoldHEN`;
+  }catch(e){console.error(e)}
 }
 
-function renderBreadcrumb(path){
-  const el=document.getElementById("bcWrap");if(!el)return;
-  const parts=path.split("/").filter(Boolean);
-  let html=`<div class="breadcrumb"><span class="bc-item" onclick="go('#/files')">/</span>`;
-  let acc="";
-  parts.forEach((p,i)=>{acc+="/"+p;const last=i===parts.length-1;html+=`<span class="bc-sep">/</span>`;html+=last?`<span class="bc-item bc-current">${p}</span>`:`<span class="bc-item" onclick="go('#/files${acc}')">${p}</span>`});
-  html+=`</div>`;el.innerHTML=html;
-}
+function renderBC(path){const el=document.getElementById("breadcrumb"),parts=path.split("/").filter(Boolean);let html=`<span class="breadcrumb-item" onclick="navigateTo('/')">/</span>`,acc="";
+parts.forEach((p,i)=>{acc+="/"+p;html+=`<span class="breadcrumb-sep">/</span>`;html+=i===parts.length-1?`<span class="breadcrumb-item breadcrumb-current">${p}</span>`:`<span class="breadcrumb-item" onclick="navigateTo('${acc}')">${p}</span>`});el.innerHTML=html}
 
-function renderToolbar(){
-  const el=document.getElementById("fileTool");if(!el)return;
-  el.innerHTML=`<div class="toolbar"><button class="btn" onclick="reloadDir()">&#x21bb; Refresh</button><button class="btn" onclick="goUp()">&#x2191; Voltar</button><button class="btn" onclick="showMkdir()">+ Pasta</button><button class="btn" id="tbRen" style="display:none" onclick="showRename()">Renomear</button><button class="btn success" id="tbCopy" style="display:none" onclick="doCopy('copy')">Copiar</button><button class="btn success" id="tbCut" style="display:none" onclick="doCopy('move')">Mover</button><button class="btn danger" id="tbDel" style="display:none" onclick="doDelete()">Excluir</button><div class="toolbar-spacer"></div><input type="text" class="search-box" placeholder="Filtrar..." oninput="filterDir(this.value)"></div>`;
-}
+async function navigateTo(path){currentPath=path;selectedItem=null;selectedIndex=-1;hideSelBtns();renderBC(path);document.getElementById("fileList").innerHTML=`<div class="loading"><div class="spinner"></div>Loading...</div>`;
+try{const r=await fetch(ap(`/api/list?path=${encodeURIComponent(path)}`)),d=await r.json();if(d.error){toast(d.error,"error");return}currentItems=d.items;renderFiles(d.items)}catch{toast("Connection error","error")}}
 
-function renderClipBar(){
-  const el=document.getElementById("clipBar");if(!el)return;
-  if(!clipboard){el.innerHTML="";return}
-  el.innerHTML=`<div class="clip-bar"><strong>${clipboard.mode==="copy"?"COPIAR":"MOVER"}</strong><span class="clip-path">${clipboard.path}</span><button class="btn btn-sm primary" onclick="doPaste()">Colar aqui</button><button class="btn btn-sm" onclick="clipClear()">Cancelar</button></div>`;
-}
+function renderFiles(items){const el=document.getElementById("fileList");if(!items.length){el.innerHTML=`<div class="loading" style="color:var(--text-dim)">Diretorio vazio</div>`;return}
+el.innerHTML=items.map((item,i)=>{const icon=item.is_dir?"&#x1F4C1;":fIcon(item.name),nc=item.is_dir?"file-name dir":"file-name",sz=item.is_dir?"":humanSize(item.size),fp=`${currentPath.replace(/\/$/,"")}/${item.name}`,cut=clipboard&&clipboard.path===fp?" cut":"";
+return`<div class="file-row${cut}" data-index="${i}" onclick="selItem(${i},event)" ondblclick="${item.is_dir?`navigateTo('${fp}')`:`pvFile('${fp}')`}" oncontextmenu="showCtx(event,${i})"><div class="file-icon">${icon}</div><div class="${nc}">${item.name}</div><div class="file-size">${sz}</div><div class="file-date">${item.date}</div><div class="file-perms">${item.permissions}</div></div>`}).join("")}
 
-async function loadDir(path){
-  currentPath=path;selectedItem=null;selectedIdx=-1;
-  const wrap=document.getElementById("fileWrap");if(!wrap)return;
-  wrap.innerHTML=`<div class="loading"><div class="spinner"></div></div>`;
-  try{
-    const d=await apiFetch(`/api/list?path=${encodeURIComponent(path)}`);
-    if(d.error){toast(d.error,"error");return}
-    currentItems=d.items;renderDirItems(d.items);
-  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`}
-}
+function fIcon(n){const e=n.split(".").pop().toLowerCase();return{pkg:"&#x1F4E6;",sfo:"&#x2699;",json:"&#x1F4CB;",xml:"&#x1F4C4;",png:"&#x1F5BC;",jpg:"&#x1F5BC;",jpeg:"&#x1F5BC;",gif:"&#x1F5BC;",txt:"&#x1F4DD;",log:"&#x1F4DD;",db:"&#x1F5C4;",dat:"&#x1F5C4;",at9:"&#x1F3B5;",mp3:"&#x1F3B5;",mp4:"&#x1F3AC;",sh:"&#x1F4DC;",py:"&#x1F4DC;"}[e]||"&#x1F4C4;"}
 
-function renderDirItems(items){
-  const wrap=document.getElementById("fileWrap");if(!wrap)return;
-  if(!items.length){wrap.innerHTML=`<div class="empty">Diretorio vazio</div>`;return}
-  let html=`<div class="file-list-wrap"><div class="fheader"><div></div><div>Nome</div><div style="text-align:right">Tamanho</div><div>Data</div><div>Permissoes</div></div>`;
-  items.forEach((it,i)=>{
-    const ic=it.is_dir?"\u{1F4C1}":fileIcon(it.name);
-    const nc=it.is_dir?"fname dir":"fname";
-    const sz=it.is_dir?"—":humanSize(it.size);
-    const cut=clipboard&&clipboard.path===`${currentPath.replace(/\/$/,"")}/${it.name}`?" cut":"";
-    const dbl=it.is_dir?`go('#/files${currentPath.replace(/\/$/,"")}/${it.name}')`:`previewFile('${currentPath.replace(/\/$/,"")}/${it.name}')`;
-    html+=`<div class="frow${cut}" data-i="${i}" onclick="selItem(${i})" ondblclick="${dbl}" oncontextmenu="showCtx(event,${i})"><div class="ficon">${ic}</div><div class="${nc}">${esc(it.name)}</div><div class="fsize">${sz}</div><div class="fdate">${it.date}</div><div class="fperms">${it.permissions}</div></div>`;
-  });
-  html+=`</div>`;wrap.innerHTML=html;
-}
+function selItem(i,e){if(e)e.stopPropagation();selectedItem=currentItems[i];selectedIndex=i;document.querySelectorAll(".file-row").forEach(r=>r.classList.remove("selected"));const row=document.querySelector(`.file-row[data-index="${i}"]`);if(row)row.classList.add("selected");showSelBtns()}
+function showSelBtns(){["btnDelete","btnCopy","btnCut","btnRename"].forEach(id=>document.getElementById(id).style.display="")}
+function hideSelBtns(){["btnDelete","btnCopy","btnCut","btnRename"].forEach(id=>document.getElementById(id).style.display="none")}
+function filterFiles(q){renderFiles(currentItems.filter(i=>i.name.toLowerCase().includes(q.toLowerCase())))}
+function goUp(){if(currentPath==="/")return;navigateTo(currentPath.replace(/\/[^/]+\/?$/,"")||"/")}
 
-function selItem(i){
-  selectedItem=currentItems[i];selectedIdx=i;
-  document.querySelectorAll(".frow").forEach(r=>r.classList.remove("selected"));
-  const row=document.querySelector(`.frow[data-i="${i}"]`);if(row)row.classList.add("selected");
-  ["tbRen","tbCopy","tbCut","tbDel"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display=""});
-}
-
-function filterDir(q){const lq=q.toLowerCase();renderDirItems(currentItems.filter(i=>i.name.toLowerCase().includes(lq)))}
-function reloadDir(){loadDir(currentPath);renderBreadcrumb(currentPath)}
-function goUp(){if(currentPath==="/")return;go("#/files"+(currentPath.replace(/\/[^/]+\/?$/,"")||""))}
-
-/* ── Clipboard ── */
-function doCopy(mode){if(!selectedItem)return;clipboard={path:`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`,name:selectedItem.name,is_dir:selectedItem.is_dir,mode};renderClipBar();renderDirItems(currentItems)}
-function clipClear(){clipboard=null;renderClipBar();renderDirItems(currentItems)}
-async function doPaste(){if(!clipboard)return;
-  try{const d=await apiFetch("/api/copy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({src:clipboard.path,dst:currentPath,mode:clipboard.mode})});
-  if(d.ok){toast(`${clipboard.mode==="copy"?"Copiando":"Movendo"} ${clipboard.name}...`,"success");startXferPoll();clipClear();setTimeout(reloadDir,1500)}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
-
-/* ── Delete / Rename / Mkdir ── */
-async function doDelete(){if(!selectedItem)return;const fp=`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`;if(!confirm(`Excluir ${selectedItem.is_dir?"pasta":"arquivo"}: ${selectedItem.name}?`))return;
-  try{const d=await apiFetch("/api/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:fp,is_dir:selectedItem.is_dir})});if(d.ok){toast("Excluido","success");reloadDir()}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
-
-function showRename(){if(!selectedItem)return;showModal("Renomear",selectedItem.name,"Renomear",async v=>{
-  const o=`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`,n=`${currentPath.replace(/\/$/,"")}/${v}`;
-  const d=await apiFetch("/api/rename",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({old:o,new:n})});
-  if(d.ok){toast("Renomeado","success");reloadDir()}else toast(d.error,"error")})}
-
-function showMkdir(){showModal("Nova Pasta","","Criar",async v=>{
-  const d=await apiFetch("/api/mkdir",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:`${currentPath.replace(/\/$/,"")}/${v}`})});
-  if(d.ok){toast("Pasta criada","success");reloadDir()}else toast(d.error,"error")})}
-
-/* ── Context menu ── */
-function showCtx(e,i){e.preventDefault();selItem(i);const it=currentItems[i];const fp=`${currentPath.replace(/\/$/,"")}/${it.name}`;
-  const m=document.getElementById("ctxMenu");let h="";
-  if(it.is_dir)h+=`<div class="ctx-item" onclick="go('#/files${fp}');hideCtx()">&#128194; Abrir</div>`;
-  else h+=`<div class="ctx-item" onclick="previewFile('${fp}');hideCtx()">&#128065; Visualizar</div>`;
-  h+=`<div class="ctx-item" onclick="window.open(api('/api/download?path=${encodeURIComponent(fp)}'));hideCtx()">&#8595; Download</div>`;
-  h+=`<div class="ctx-sep"></div><div class="ctx-item" onclick="doCopy('copy');hideCtx()">&#128203; Copiar</div><div class="ctx-item" onclick="doCopy('move');hideCtx()">&#9986; Mover</div>`;
-  if(clipboard)h+=`<div class="ctx-item" onclick="doPaste();hideCtx()">&#128204; Colar aqui</div>`;
-  h+=`<div class="ctx-sep"></div><div class="ctx-item" onclick="showRename();hideCtx()">&#9998; Renomear</div><div class="ctx-item" style="color:var(--danger)" onclick="doDelete();hideCtx()">&#10007; Excluir</div>`;
-  m.innerHTML=h;m.style.left=Math.min(e.clientX,window.innerWidth-200)+"px";m.style.top=Math.min(e.clientY,window.innerHeight-300)+"px";m.classList.remove("hidden")}
+function showCtx(e,i){e.preventDefault();selItem(i);const item=currentItems[i],fp=`${currentPath.replace(/\/$/,"")}/${item.name}`;
+const m=document.getElementById("ctxMenu");let h="";
+if(item.is_dir)h+=`<div class="ctx-item" onclick="navigateTo('${fp}');hideCtx()">&#x1F4C2; Abrir</div>`;
+else h+=`<div class="ctx-item" onclick="pvFile('${fp}');hideCtx()">&#x1F441; Visualizar</div>`;
+h+=`<div class="ctx-item" onclick="window.open(ap('/api/download?path=${encodeURIComponent(fp)}'));hideCtx()">&#x2193; Download</div><div class="ctx-sep"></div>`;
+h+=`<div class="ctx-item" onclick="clipboardCopy('copy');hideCtx()">&#x1F4CB; Copiar</div><div class="ctx-item" onclick="clipboardCopy('move');hideCtx()">&#x2702; Mover</div>`;
+if(clipboard)h+=`<div class="ctx-item" onclick="clipboardPaste();hideCtx()">&#x1F4CC; Colar aqui</div>`;
+h+=`<div class="ctx-sep"></div><div class="ctx-item" onclick="showRename();hideCtx()">&#x270E; Renomear</div><div class="ctx-item" style="color:var(--danger)" onclick="deleteSelected();hideCtx()">&#x2717; Excluir</div>`;
+m.innerHTML=h;m.style.left=e.clientX+"px";m.style.top=e.clientY+"px";m.classList.remove("hidden")}
 function hideCtx(){document.getElementById("ctxMenu").classList.add("hidden")}
 document.addEventListener("click",hideCtx);
 
-/* ── Preview ── */
-async function previewFile(path){
-  const name=path.split("/").pop();
-  const bg=document.createElement("div");bg.className="preview-bg";bg.onclick=e=>{if(e.target===bg)bg.remove()};
-  bg.innerHTML=`<div class="preview"><h3><span>${esc(name)}</span><button class="btn btn-sm" onclick="this.closest('.preview-bg').remove()">&#x2715;</button></h3><div class="loading"><div class="spinner"></div></div></div>`;
-  document.body.appendChild(bg);
-  try{
-    const d=await apiFetch(`/api/preview?path=${encodeURIComponent(path)}`);
-    const c=bg.querySelector(".preview");if(!c)return;
-    let html="";
-    if(d.error)html=`<pre style="color:var(--danger)">${d.error}</pre>`;
-    else if(d.type==="sfo")html=`<table class="sfo-tbl">${Object.entries(d.data).map(([k,v])=>`<tr><td>${k}</td><td>${esc(String(v))}</td></tr>`).join("")}</table>`;
-    else if(d.type==="json")html=`<pre>${esc(JSON.stringify(d.data,null,2))}</pre>`;
-    else if(d.type==="text")html=`<pre>${esc(d.data)}</pre>`;
-    else if(d.type==="image")html=`<img src="${d.data}">`;
-    else html=`<p>Binario (${humanSize(d.size)})</p><pre>${d.hex||""}</pre>`;
-    html+=`<div style="margin-top:14px"><a href="${api("/api/download?path="+encodeURIComponent(path))}" class="btn primary" target="_blank">&#8595; Download</a></div>`;
-    c.querySelector(".loading").outerHTML=html;
-  }catch(e){bg.querySelector(".loading").outerHTML=`<pre style="color:var(--danger)">${e.message}</pre>`}
-}
+function clipboardCopy(mode){if(!selectedItem)return;clipboard={path:`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`,name:selectedItem.name,is_dir:selectedItem.is_dir,mode};
+document.getElementById("clipboardBar").classList.remove("hidden");document.getElementById("clipboardMode").textContent=mode==="copy"?"COPIAR":"MOVER";document.getElementById("clipboardPath").textContent=clipboard.path;renderFiles(currentItems)}
+function clipboardClear(){clipboard=null;document.getElementById("clipboardBar").classList.add("hidden");renderFiles(currentItems)}
+async function clipboardPaste(){if(!clipboard)return;try{const r=await fetch(ap("/api/copy"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({src:clipboard.path,dst:currentPath,mode:clipboard.mode})});const d=await r.json();if(d.ok){toast(`${clipboard.mode==="copy"?"Copiando":"Movendo"} ${clipboard.name}...`,"success");showTP();startTPoll();clipboardClear();setTimeout(()=>navigateTo(currentPath),1000)}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
 
-/* ════════════════════════════════════════════
-   Apps
-   ════════════════════════════════════════════ */
-async function renderApps(pg){
-  pg.innerHTML=`<div class="page-title">Apps Instalados</div><div class="toolbar"><button class="btn" onclick="renderApps(document.getElementById('page'))">&#x21bb; Refresh</button></div><div id="appGrid" class="apps-grid"><div class="loading"><div class="spinner"></div></div></div>`;
-  try{
-    const d=await apiFetch("/api/apps");if(d.error){toast(d.error,"error");return}
-    const el=document.getElementById("appGrid");if(!el)return;
-    el.innerHTML=d.apps.map(a=>`<div class="app-card"><div class="app-icon-area">${a.icon?`<img src="${a.icon}">`:`<div class="app-ph">${a.title?a.title[0]:"?"}</div>`}</div><div class="app-body"><div class="app-title">${esc(a.title)}</div><div class="app-meta">${a.title_id} &middot; v${a.version} &middot; ${a.category}</div><div class="app-meta">${a.content_id}</div></div><div class="app-actions"><button class="btn btn-sm" onclick="go('#/files/user/app/${a.title_id}')">Arquivos</button><button class="btn btn-sm danger" onclick="uninstApp('${a.title_id}','${esc(a.title)}')">Desinstalar</button></div></div>`).join("");
-  }catch(e){toast(e.message,"error")}
-}
-async function uninstApp(tid,title){if(!confirm(`Desinstalar "${title}" (${tid})?`))return;
-  try{const d=await apiFetch("/api/uninstall",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title_id:tid})});
-  if(d.ok){toast(`${title} desinstalado`,"success");renderApps(document.getElementById("page"))}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
+async function deleteSelected(){if(!selectedItem)return;const fp=`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`;if(!confirm(`Excluir ${selectedItem.is_dir?"pasta":"arquivo"}: ${selectedItem.name}?`))return;
+try{const r=await fetch(ap("/api/delete"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:fp,is_dir:selectedItem.is_dir})});const d=await r.json();if(d.ok){toast("Excluido","success");navigateTo(currentPath)}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
 
-/* ════════════════════════════════════════════
-   PKGs
-   ════════════════════════════════════════════ */
-async function renderPkgs(pg){
-  pg.innerHTML=`<div class="page-title">PKGs nos Pendrives</div><div class="toolbar"><button class="btn" onclick="renderPkgs(document.getElementById('page'))">&#x21bb; Escanear</button><div class="toolbar-spacer"></div><span style="font-size:12px;color:var(--text-dim)">Busca recursiva por .pkg em USB0-3</span></div><div id="pkgWrap"><div class="loading"><div class="spinner"></div> Escaneando...</div></div>`;
-  try{
-    const d=await apiFetch("/api/scan_usb");if(d.error){toast(d.error,"error");return}
-    const el=document.getElementById("pkgWrap");if(!el)return;
-    let html="";
-    for(const[usb,info]of Object.entries(d)){
-      const label=usb.split("/").pop().toUpperCase();
-      html+=`<div class="pkg-section"><div class="pkg-section-title">${label} (${usb}) ${info.mounted?`<span class="cnt">${info.pkgs.length} .pkg</span>`:`<span class="cnt" style="color:var(--danger)">nao montado</span>`}</div>`;
-      if(info.pkgs&&info.pkgs.length){info.pkgs.forEach(p=>{
-        const parent=p.path.substring(0,p.path.lastIndexOf("/"));
-        html+=`<div class="pkg-row"><div class="pkg-icon">&#x1F4E6;</div><div class="pkg-info"><div class="pkg-name">${esc(p.name)}</div><div class="pkg-path">${p.path}</div></div><div class="pkg-sz">${humanSize(p.size)}</div><div class="btn-group"><button class="btn btn-sm" onclick="go('#/files${parent}')" title="Abrir pasta">&#128194;</button><button class="btn btn-sm" onclick="window.open(api('/api/download?path=${encodeURIComponent(p.path)}'))" title="Download">&#8595;</button><button class="btn btn-sm success" onclick="copyPkg('${p.path}','${esc(p.name)}')" title="Copiar para outro USB">Copiar</button></div></div>`})}
-      else if(info.mounted)html+=`<p style="color:var(--text-dim);padding:8px 0">Nenhum .pkg encontrado</p>`;
-      html+=`</div>`}
-    el.innerHTML=html;
-  }catch(e){document.getElementById("pkgWrap").innerHTML=`<div class="empty">Erro: ${e.message}</div>`}
-}
-function copyPkg(src,name){const srcUsb=src.split("/").slice(0,3).join("/");const opts=["/mnt/usb0","/mnt/usb1","/mnt/usb2"].filter(d=>d!==srcUsb);
-  const dest=prompt(`Copiar ${name} para:\n\n${opts.join(", ")}\n\nOu outro caminho:`,opts[0]);if(!dest)return;
-  apiFetch("/api/copy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({src,dst:dest,mode:"copy"})}).then(d=>{if(d.ok){toast("Copiando...","success");startXferPoll()}else toast(d.error,"error")}).catch(e=>toast(e.message,"error"))}
+function showRename(){if(!selectedItem)return;document.getElementById("modalTitle").textContent="Renomear";document.getElementById("modalInput").value=selectedItem.name;document.getElementById("modalOk").textContent="Renomear";document.getElementById("modalOverlay").classList.remove("hidden");document.getElementById("modalInput").focus();
+modalCallback=async v=>{const r=await fetch(ap("/api/rename"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({old:`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`,new:`${currentPath.replace(/\/$/,"")}/${v}`})});const d=await r.json();if(d.ok){toast("Renomeado","success");navigateTo(currentPath)}else toast(d.error,"error")}}
 
-/* ════════════════════════════════════════════
-   Transfer (large file upload via XHR)
-   ════════════════════════════════════════════ */
-function renderTransfer(pg){
-  pg.innerHTML=`<div class="page-title">Transferir Jogos e Arquivos</div>
-    <div class="dest-bar">Destino no PS4: <strong id="destLabel">${uploadDest}</strong>
-      <button class="btn btn-sm" onclick="setDest('/mnt/usb0')">USB0</button>
-      <button class="btn btn-sm" onclick="setDest('/mnt/usb1')">USB1</button>
-      <button class="btn btn-sm" onclick="setDest('/mnt/usb2')">USB2</button>
-      <button class="btn btn-sm" onclick="setDest('/user/app')">App</button>
-      <button class="btn btn-sm" onclick="promptDest()">Outro...</button></div>
-    <div class="upload-zone" id="uz" onclick="document.getElementById('finput').click()">
-      <div class="uz-icon">&#8593;</div>
-      <p><strong>Arraste .pkg ou qualquer arquivo aqui</strong></p>
-      <p class="uz-sub">Suporta arquivos grandes (jogos de 50GB+) com progresso em tempo real</p>
-      <input type="file" id="finput" style="display:none" multiple onchange="uploadFiles(this.files)">
-    </div>
-    <div id="xferList"></div>`;
-  const uz=document.getElementById("uz");
-  uz.addEventListener("dragover",e=>{e.preventDefault();uz.classList.add("dragover")});
-  uz.addEventListener("dragleave",()=>uz.classList.remove("dragover"));
-  uz.addEventListener("drop",e=>{e.preventDefault();uz.classList.remove("dragover");uploadFiles(e.dataTransfer.files)});
-  renderXferList();
-}
+function showMkdir(){document.getElementById("modalTitle").textContent="Nova Pasta";document.getElementById("modalInput").value="";document.getElementById("modalInput").placeholder="nome-da-pasta";document.getElementById("modalOk").textContent="Criar";document.getElementById("modalOverlay").classList.remove("hidden");document.getElementById("modalInput").focus();
+modalCallback=async v=>{const r=await fetch(ap("/api/mkdir"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:`${currentPath.replace(/\/$/,"")}/${v}`})});const d=await r.json();if(d.ok){toast("Pasta criada","success");navigateTo(currentPath)}else toast(d.error,"error")}}
 
-function setDest(d){uploadDest=d;const l=document.getElementById("destLabel");if(l)l.textContent=d}
-function promptDest(){const d=prompt("Caminho de destino no PS4:",currentPath);if(d)setDest(d)}
+function modalConfirm(){const v=document.getElementById("modalInput").value.trim();if(!v)return;closeModal();if(modalCallback)modalCallback(v)}
+function closeModal(){document.getElementById("modalOverlay").classList.add("hidden")}
+document.getElementById("modalInput").addEventListener("keydown",e=>{if(e.key==="Enter")modalConfirm();if(e.key==="Escape")closeModal()});
 
-function uploadFiles(files){
-  for(const file of files){
-    const tid="u_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
-    activeTransfers[tid]={filename:file.name,total:file.size,loaded:0,speed:0,status:"active",startTime:Date.now(),phase:"uploading",error:null,dst:uploadDest+"/"+file.name};
+async function pvFile(path){document.getElementById("pvTitle").textContent=path.split("/").pop();document.getElementById("pvContent").innerHTML=`<div class="loading"><div class="spinner"></div></div>`;document.getElementById("previewOverlay").classList.remove("hidden");
+try{const r=await fetch(ap(`/api/preview?path=${encodeURIComponent(path)}`)),d=await r.json();if(d.error){document.getElementById("pvContent").innerHTML=`<pre style="color:var(--danger)">${d.error}</pre>`;return}
+const el=document.getElementById("pvContent");
+if(d.type==="sfo")el.innerHTML=`<table class="sfo-table">${Object.entries(d.data).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("")}</table>`;
+else if(d.type==="json")el.innerHTML=`<pre>${JSON.stringify(d.data,null,2)}</pre>`;
+else if(d.type==="text")el.innerHTML=`<pre>${esc(d.data)}</pre>`;
+else if(d.type==="image")el.innerHTML=`<img src="${d.data}">`;
+else el.innerHTML=`<p>Binary (${humanSize(d.size)})</p><pre>${d.hex}</pre>`;
+el.innerHTML+=`<div style="margin-top:16px"><a href="${ap('/api/download?path='+encodeURIComponent(path))}" class="btn primary">&#x2193; Download</a></div>`}catch(e){document.getElementById("pvContent").innerHTML=`<pre style="color:var(--danger)">${e.message}</pre>`}}
+function closePV(){document.getElementById("previewOverlay").classList.add("hidden")}
 
-    const xhr=new XMLHttpRequest();
-    xhr.open("POST",api("/api/upload_stream"),true);
-    xhr.setRequestHeader("X-Filename",encodeURIComponent(file.name));
-    xhr.setRequestHeader("X-Destination",uploadDest);
-    xhr.setRequestHeader("X-Transfer-Id",tid);
+async function loadApps(){const el=document.getElementById("appsList");el.innerHTML=`<div class="loading"><div class="spinner"></div>Carregando apps...</div>`;
+try{const r=await fetch(ap("/api/apps")),d=await r.json();if(d.error){toast(d.error,"error");return}
+document.getElementById("appsCount").textContent=`${d.apps.length} apps`;const nb=document.getElementById("navAppBadge");nb.textContent=d.apps.length;nb.style.display="";
+el.innerHTML=d.apps.map(a=>`<div class="app-card"><div class="app-icon-area">${a.icon?`<img src="${a.icon}">`:`<div class="app-icon-placeholder">${a.title[0]}</div>`}</div><div class="app-info"><div class="app-title">${a.title}</div><div class="app-meta">ID: ${a.title_id} &middot; v${a.version} &middot; ${a.category}</div><div class="app-meta" style="font-size:11px;font-family:var(--mono)">${a.content_id}</div></div><div class="app-actions"><button class="btn btn-sm" onclick="go('files');navigateTo('/user/app/${a.title_id}')">Arquivos</button><button class="btn btn-sm danger" onclick="uninstall('${a.title_id}','${esc(a.title)}')">Desinstalar</button></div></div>`).join("")}catch(e){toast(e.message,"error")}}
 
-    let lastLoaded=0,lastTime=Date.now();
-    xhr.upload.onprogress=function(e){
-      if(!e.lengthComputable)return;
-      const now=Date.now(),dt=(now-lastTime)/1000;
-      if(dt>0.3){const speed=(e.loaded-lastLoaded)/dt;lastLoaded=e.loaded;lastTime=now;
-        activeTransfers[tid].speed=speed}
-      activeTransfers[tid].loaded=e.loaded;activeTransfers[tid].total=e.total;
-      renderXferList();
-    };
-    xhr.onload=function(){
-      if(xhr.status>=200&&xhr.status<300){activeTransfers[tid].status="done";activeTransfers[tid].loaded=activeTransfers[tid].total;toast(`${file.name} enviado!`,"success")}
-      else{activeTransfers[tid].status="error";activeTransfers[tid].error=xhr.responseText;toast(`Erro: ${file.name}`,"error")}
-      renderXferList();
-    };
-    xhr.onerror=function(){activeTransfers[tid].status="error";activeTransfers[tid].error="Falha na conexao";toast("Erro de conexao","error");renderXferList()};
-    xhr.send(file);
-    renderXferList();
-  }
-}
+async function uninstall(tid,title){if(!confirm(`Desinstalar "${title}" (${tid})?`))return;
+try{const r=await fetch(ap("/api/uninstall"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title_id:tid})});const d=await r.json();if(d.ok){toast(`${title} desinstalado`,"success");loadApps()}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
 
-function renderXferList(){
-  const el=document.getElementById("xferList");if(!el)return;
-  const items=Object.values(activeTransfers);
-  if(!items.length){el.innerHTML="";return}
-  el.innerHTML=`<h3 style="font-size:15px;margin:16px 0 10px">Transferencias</h3>`+items.map(t=>{
-    const pct=t.total>0?Math.round(t.loaded/t.total*100):0;
-    const elapsed=(Date.now()-t.startTime)/1000;
-    const eta=t.speed>0&&t.status==="active"?Math.round((t.total-t.loaded)/t.speed):0;
-    const etaStr=eta>60?Math.round(eta/60)+"m "+eta%60+"s":eta+"s";
-    const sc=t.status==="done"?"xf-done":t.status==="error"?"xf-error":"xf-active";
-    const st=t.status==="done"?"Concluido":t.status==="error"?"Erro":"Enviando...";
-    return`<div class="xfer-item"><div class="xfer-head"><span style="font-size:15px">${t.status==="done"?"&#10003;":t.status==="error"?"&#10007;":"&#8593;"}</span><span class="xf-name">${esc(t.filename)}</span><span class="xf-status ${sc}">${st}</span></div>${t.status==="active"?`<div class="xfer-bar"><div class="xfer-fill" style="width:${pct}%"></div></div>`:""}<div class="xfer-info"><span>${humanSize(t.loaded)} / ${humanSize(t.total)}</span><span>${pct}%</span>${t.status==="active"?`<span>${humanSpeed(t.speed)}</span><span>ETA: ${etaStr}</span>`:""}<span>${t.dst}</span></div></div>`}).join("");
-}
+async function scanUSB(){const el=document.getElementById("pkgList");el.innerHTML=`<div class="loading"><div class="spinner"></div>Escaneando USB...</div>`;
+try{const r=await fetch(ap("/api/scan_usb")),d=await r.json();if(d.error){toast(d.error,"error");return}
+let h="";for(const[usb,info]of Object.entries(d)){h+=`<div class="pkg-section"><h3>${usb.split("/").pop().toUpperCase()} (${usb}) ${info.mounted?`<span class="count">${info.pkgs.length} .pkg</span>`:'<span class="count" style="color:var(--danger)">nao montado</span>'}</h3>`;
+if(info.pkgs.length>0)info.pkgs.forEach(pkg=>{const dir=pkg.path.substring(0,pkg.path.lastIndexOf("/"));
+h+=`<div class="pkg-row"><div style="font-size:24px">&#x1F4E6;</div><div class="pkg-info"><div class="pkg-name">${pkg.name}</div><div class="pkg-path">${pkg.path}</div></div><div class="pkg-size">${humanSize(pkg.size)}</div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="go('files');navigateTo('${dir}')">&#x1F4C2;</button><button class="btn btn-sm" onclick="window.open(ap('/api/download?path=${encodeURIComponent(pkg.path)}'))">&#x2193;</button></div></div>`});
+else if(info.mounted)h+=`<p style="color:var(--text-dim);padding:8px 16px">Nenhum .pkg encontrado</p>`;h+=`</div>`}
+el.innerHTML=h}catch(e){toast(e.message,"error")}}
 
-/* Server-side transfer polling (copy/move) */
-function startXferPoll(){if(!xferPollId)xferPollId=setInterval(pollServerXfers,1500);pollServerXfers()}
-async function pollServerXfers(){
-  try{const d=await apiFetch("/api/transfers");const items=Object.values(d);
-    items.forEach(t=>{activeTransfers["s_"+t.id]={filename:t.filename,total:t.total||0,loaded:t.transferred||0,speed:t.speed||0,status:t.status,startTime:(t.started||Date.now()/1000)*1000,phase:t.phase||"",error:t.error||null,dst:t.dst||""}});
-    renderXferList();
-    if(items.every(t=>t.status!=="active")){clearInterval(xferPollId);xferPollId=null}
-  }catch{}}
+function pickDest(d){uploadDest=d;document.getElementById("uploadDest").textContent=d;document.getElementById("uploadDestPath").textContent=d}
+function promptDest(){const d=prompt("Caminho destino no PS4:",currentPath);if(d)pickDest(d)}
 
-/* ════════════════════════════════════════════
-   Settings
-   ════════════════════════════════════════════ */
-function renderSettings(pg){
-  const cur=getApiUrl();
-  const isLocal=window.location.hostname==="localhost"||window.location.hostname==="127.0.0.1";
-  pg.innerHTML=`<div class="page-title">Configuracoes</div>
-    <div class="setting-group"><label>URL da API (servidor local)</label><input class="setting-input" id="apiUrlInput" type="text" value="${esc(cur)}"><div class="setting-hint">${isLocal?"Conectado localmente. Altere se o servidor rodar em outra maquina.":"Insira o IP do computador rodando o servidor Python (ex: http://192.168.1.110:8090)"}</div></div>
-    <div class="setting-group"><button class="btn primary" onclick="saveApiUrl()">Salvar</button> <button class="btn" onclick="resetApiUrl()">Resetar padrao</button></div>
-    <hr style="border-color:var(--border);margin:24px 0">
-    <div class="setting-group"><label>Status da conexao</label><div id="settingsStatus"><div class="loading"><div class="spinner"></div></div></div></div>
-    <div class="setting-group"><label>Sobre</label><div style="font-size:13px;color:var(--text-dim)"><p>PS4 File Manager v2.0</p><p>Gerenciador de arquivos via FTP para PS4 com GoldHEN.</p><p style="margin-top:8px">O servidor Python roda localmente e se conecta ao PS4 via FTP. Este frontend pode ser hospedado na Vercel — basta configurar a URL da API acima apontando para o servidor local.</p></div></div>`;
-  apiFetch("/api/status").then(d=>{const el=document.getElementById("settingsStatus");if(!el)return;
-    el.innerHTML=d.connected?`<div style="color:var(--success)">&#10003; Conectado — ${d.server}<br><span style="color:var(--text-dim);font-size:12px">IP: ${d.ip}:${d.port}</span></div>`:`<div style="color:var(--danger)">&#10007; Offline<br><span style="color:var(--text-dim);font-size:12px">${d.error||""}</span></div>`}).catch(e=>{const el=document.getElementById("settingsStatus");if(el)el.innerHTML=`<div style="color:var(--danger)">&#10007; ${e.message}</div>`});
-}
-function saveApiUrl(){const v=document.getElementById("apiUrlInput").value.trim();if(!v)return;try{localStorage.setItem("ps4fm_api_url",v.replace(/\/$/,""))}catch{}toast("API URL salva","success");pollStatus()}
-function resetApiUrl(){try{localStorage.removeItem("ps4fm_api_url")}catch{}document.getElementById("apiUrlInput").value=window.location.origin;toast("Resetado","success");pollStatus()}
+const uz=document.getElementById("uploadZone");
+uz.addEventListener("dragover",e=>{e.preventDefault();uz.classList.add("dragover")});
+uz.addEventListener("dragleave",()=>uz.classList.remove("dragover"));
+uz.addEventListener("drop",e=>{e.preventDefault();uz.classList.remove("dragover");uploadFiles(e.dataTransfer.files)});
 
-/* ════════════════════════════════════════════
-   Modal
-   ════════════════════════════════════════════ */
-function showModal(title,val,okText,cb){
-  const bg=document.createElement("div");bg.className="modal-bg";bg.onclick=e=>{if(e.target===bg)bg.remove()};
-  bg.innerHTML=`<div class="modal"><h3>${title}</h3><input type="text" id="modalIn" value="${esc(val)}"><div class="modal-btns"><button class="btn" onclick="this.closest('.modal-bg').remove()">Cancelar</button><button class="btn primary" id="modalOk">${okText}</button></div></div>`;
-  document.body.appendChild(bg);
-  const inp=document.getElementById("modalIn");inp.focus();inp.select();
-  const ok=()=>{const v=inp.value.trim();if(v){bg.remove();cb(v)}};
-  document.getElementById("modalOk").onclick=ok;
-  inp.onkeydown=e=>{if(e.key==="Enter")ok();if(e.key==="Escape")bg.remove()};
-}
+async function uploadFiles(files){const log=document.getElementById("uploadLog");
+for(const file of files){const tid="u_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+log.innerHTML=`<div style="padding:8px 0;color:var(--text-dim)">Enviando ${file.name} (${humanSize(file.size)})...</div>`+log.innerHTML;
+showTP();startTPoll();
+try{const r=await fetch(ap("/api/upload_stream"),{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"X-Destination":uploadDest,"X-Transfer-Id":tid,"Content-Type":"application/octet-stream"},body:file});
+const d=await r.json();if(d.ok)log.innerHTML=`<div style="padding:8px 0;color:var(--success)">&#x2713; ${file.name} -> ${d.path}</div>`+log.innerHTML;
+else log.innerHTML=`<div style="padding:8px 0;color:var(--danger)">&#x2717; ${file.name}: ${d.error}</div>`+log.innerHTML;
+}catch(e){log.innerHTML=`<div style="padding:8px 0;color:var(--danger)">&#x2717; ${file.name}: ${e.message}</div>`+log.innerHTML}}}
 
-/* ════════════════════════════════════════════
-   Keyboard shortcuts
-   ════════════════════════════════════════════ */
-document.addEventListener("keydown",e=>{
-  if(["INPUT","TEXTAREA"].includes(document.activeElement?.tagName))return;
-  if(e.key==="Backspace"&&getRoute()==="files"){e.preventDefault();goUp()}
-  if(e.key==="Delete"&&selectedItem)doDelete();
-  if(e.key==="F2"&&selectedItem){e.preventDefault();showRename()}
-  if((e.ctrlKey||e.metaKey)&&e.key==="c"&&selectedItem){e.preventDefault();doCopy("copy")}
-  if((e.ctrlKey||e.metaKey)&&e.key==="x"&&selectedItem){e.preventDefault();doCopy("move")}
-  if((e.ctrlKey||e.metaKey)&&e.key==="v"&&clipboard){e.preventDefault();doPaste()}
-});
+function showTP(){document.getElementById("transferPanel").classList.remove("hidden","collapsed")}
+function toggleTP(){document.getElementById("transferPanel").classList.toggle("collapsed")}
 
-/* ════════════════════════════════════════════
-   Init
-   ════════════════════════════════════════════ */
-pollStatus();setInterval(pollStatus,15000);
-if(!location.hash)location.hash="#/";
-route();
+async function pollT(){try{const r=await fetch(ap("/api/transfers")),d=await r.json();const items=Object.values(d);
+document.getElementById("transferCount").textContent=items.length;
+if(!items.length){document.getElementById("transferPanel").classList.add("hidden");if(tpTimer){clearInterval(tpTimer);tpTimer=null}return}
+document.getElementById("transferList").innerHTML=items.map(t=>{const pct=t.total>0?Math.round(t.transferred/t.total*100):0;
+const sc=t.status==="done"?"status-done":t.status==="error"?"status-error":"status-active";
+const st=t.status==="done"?"Concluido":t.status==="error"?"Erro":(t.phase||"...");
+return`<div class="transfer-item"><div class="transfer-item-header"><span style="font-size:16px">${t.type==="upload"?"&#x2191;":"&#x21C4;"}</span><span class="filename">${t.filename}</span><span class="status ${sc}">${st}</span></div>${t.status==="active"?`<div class="transfer-progress"><div class="transfer-progress-bar" style="width:${pct}%"></div></div>`:""}<div class="transfer-info"><span>${humanSize(t.transferred)} / ${humanSize(t.total)}</span><span>${pct}%</span>${t.status==="active"?`<span>${humanSpeed(t.speed)}</span>`:""}</div></div>`}).join("");
+if(items.every(t=>t.status!=="active")&&tpTimer){clearInterval(tpTimer);tpTimer=null}}catch{}}
+
+function startTPoll(){if(!tpTimer)tpTimer=setInterval(pollT,1000);pollT()}
+async function clearDone(){try{const r=await fetch(ap("/api/transfers")),d=await r.json();for(const[id,t]of Object.entries(d)){if(t.status!=="active")await fetch(ap(`/api/transfers/${id}`),{method:"DELETE"})}pollT()}catch{}}
+
+function saveConfig(){const url=document.getElementById("cfgApi").value.trim().replace(/\/$/,"");localStorage.setItem("ps4fm_api",url);toast("Salvo. Recarregue a pagina.","success")}
+
+document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA"].includes(document.activeElement.tagName))return;
+if(e.key==="Backspace"){e.preventDefault();goUp()}if(e.key==="Escape"){closePV();closeModal()}
+if(e.key==="Delete"&&selectedItem)deleteSelected();
+if(e.key==="c"&&(e.ctrlKey||e.metaKey)&&selectedItem){e.preventDefault();clipboardCopy("copy")}
+if(e.key==="x"&&(e.ctrlKey||e.metaKey)&&selectedItem){e.preventDefault();clipboardCopy("move")}
+if(e.key==="v"&&(e.ctrlKey||e.metaKey)&&clipboard){e.preventDefault();clipboardPaste()}
+if(e.key==="F2"&&selectedItem){e.preventDefault();showRename()}});
+
+const hash=location.hash.replace("#","");
+if(hash&&["dashboard","files","apps","pkgs","upload","config"].includes(hash))go(hash);else go("dashboard");
+loadDash();setInterval(checkStatus,15000);
 </script>
 </body>
 </html>
