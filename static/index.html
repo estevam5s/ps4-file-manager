@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PS4 File Manager</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230070d1'/><path d='M7 16a4 4 0 118 0 4 4 0 01-8 0zm9-5a2 2 0 014 0v10a2 2 0 01-4 0V11zm6 2a3 3 0 016 0v6a3 3 0 01-6 0v-6z' fill='white' opacity='.9'/></svg>">
+<style>
+:root{--bg:#0a0a12;--bg-card:#12121e;--bg-hover:#1a1a2e;--bg-selected:#1e3a5f;--border:#22223a;--text:#e0e0e8;--text-dim:#7a7a96;--accent:#0070d1;--accent-glow:#0090ff;--accent-bg:rgba(0,112,209,.08);--danger:#d14040;--success:#40b060;--warning:#d1a040;--sidebar-w:240px;--header-h:0px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;--mono:'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;--radius:8px;--shadow:0 2px 12px rgba(0,0,0,.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;overflow:hidden}
+a{color:var(--accent);text-decoration:none}
+
+/* ── Sidebar ── */
+.sidebar{width:var(--sidebar-w);background:#0d0d1a;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;z-index:50;transition:transform .25s}
+.sidebar-brand{padding:20px 20px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.sidebar-brand svg{width:36px;height:36px;flex-shrink:0}
+.sidebar-brand-text{font-size:15px;font-weight:700;letter-spacing:-.3px;line-height:1.2}
+.sidebar-brand-sub{font-size:11px;color:var(--text-dim);font-weight:400}
+.sidebar-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+.nav-link{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius);font-size:14px;color:var(--text-dim);cursor:pointer;transition:all .15s;user-select:none;font-weight:500}
+.nav-link:hover{background:var(--bg-hover);color:var(--text)}
+.nav-link.active{background:var(--accent-bg);color:var(--accent-glow)}
+.nav-link .nav-icon{width:20px;text-align:center;font-size:16px;flex-shrink:0}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)}
+.sidebar-footer .conn{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.conn-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;animation:pulse 2s ease-in-out infinite}
+.conn-dot.on{background:var(--success)}.conn-dot.off{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.page{flex:1;overflow-y:auto;padding:24px;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.page-title{font-size:22px;font-weight:700;margin-bottom:20px;letter-spacing:-.3px}
+
+/* ── Mobile ── */
+.hamburger{display:none;position:fixed;top:12px;left:12px;z-index:60;width:40px;height:40px;border-radius:var(--radius);background:var(--bg-card);border:1px solid var(--border);cursor:pointer;align-items:center;justify-content:center;font-size:20px;color:var(--text)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+@media(max-width:768px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);z-index:50}
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:flex}
+  .overlay.show{display:block}
+  .page{padding:16px;padding-top:56px}
+}
+
+/* ── Cards ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:all .2s}
+.card:hover{border-color:rgba(0,112,209,.3);box-shadow:var(--shadow)}
+.card-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600}
+.card-value{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.card-sub{font-size:12px;color:var(--text-dim);margin-top:4px}
+.card-value.green{color:var(--success)}.card-value.red{color:var(--danger)}.card-value.blue{color:var(--accent-glow)}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text);font-size:13px;cursor:pointer;transition:all .15s;font-family:var(--font);white-space:nowrap}
+.btn:hover{background:var(--bg-hover);border-color:var(--accent)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.primary:hover{background:var(--accent-glow)}
+.btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+.btn.success:hover{border-color:var(--success);color:var(--success)}
+.btn-group{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;align-items:center;gap:8px;padding:0 0 16px;flex-wrap:wrap}
+.toolbar-spacer{flex:1}
+.search-box{padding:7px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text);font-size:13px;width:200px;font-family:var(--font)}.search-box::placeholder{color:var(--text-dim)}.search-box:focus{outline:none;border-color:var(--accent)}
+
+/* ── Breadcrumb ── */
+.breadcrumb{display:flex;align-items:center;gap:2px;padding:0 0 12px;font-size:13px;overflow-x:auto;flex-wrap:nowrap}
+.bc-item{color:var(--accent);cursor:pointer;padding:2px 6px;border-radius:4px;white-space:nowrap}.bc-item:hover{background:var(--bg-hover)}
+.bc-sep{color:var(--text-dim);padding:0 2px}.bc-current{color:var(--text);cursor:default}
+
+/* ── File list ── */
+.fheader{display:grid;grid-template-columns:28px 1fr 90px 130px 100px;gap:8px;padding:8px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);border-bottom:1px solid var(--border);user-select:none;background:var(--bg-card);border-radius:var(--radius) var(--radius) 0 0}
+.frow{display:grid;grid-template-columns:28px 1fr 90px 130px 100px;gap:8px;padding:8px 12px;align-items:center;border-bottom:1px solid rgba(34,34,58,.4);cursor:pointer;transition:background .1s}
+.frow:hover{background:var(--bg-hover)}.frow.selected{background:var(--bg-selected)}.frow.cut{opacity:.45}
+.frow:last-child{border-bottom:none}
+.ficon{font-size:18px;text-align:center}
+.fname{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fname.dir{color:var(--accent-glow);font-weight:500}
+.fsize{font-size:12px;color:var(--text-dim);text-align:right;font-family:var(--mono)}
+.fdate{font-size:12px;color:var(--text-dim)}.fperms{font-size:11px;color:var(--text-dim);font-family:var(--mono)}
+.file-list-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+
+/* ── Clipboard bar ── */
+.clip-bar{padding:8px 12px;background:var(--accent-bg);border:1px solid rgba(0,112,209,.2);border-radius:var(--radius);display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:12px}
+.clip-bar .clip-path{font-family:var(--mono);color:var(--accent-glow);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Apps grid ── */
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.app-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .2s}
+.app-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow)}
+.app-icon-area{height:130px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a1628,#162040)}
+.app-icon-area img{max-height:110px;max-width:110px;border-radius:8px}
+.app-ph{width:72px;height:72px;border-radius:12px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--text-dim)}
+.app-body{padding:14px 16px}.app-title{font-size:14px;font-weight:600;margin-bottom:4px}.app-meta{font-size:11px;color:var(--text-dim);margin-bottom:2px;font-family:var(--mono)}
+.app-actions{padding:0 16px 14px;display:flex;gap:6px}.app-actions .btn{flex:1;justify-content:center;font-size:12px;padding:5px 8px}
+
+/* ── PKG rows ── */
+.pkg-section{margin-bottom:24px}
+.pkg-section-title{font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.pkg-section-title .cnt{font-size:12px;color:var(--text-dim);font-weight:400}
+.pkg-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;background:var(--bg-card);transition:all .15s}
+.pkg-row:hover{border-color:var(--accent);background:var(--bg-hover)}
+.pkg-icon{font-size:22px}.pkg-info{flex:1;min-width:0}
+.pkg-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pkg-path{font-size:11px;color:var(--text-dim);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pkg-sz{font-size:12px;color:var(--text-dim);font-family:var(--mono);white-space:nowrap;margin-right:8px}
+
+/* ── Transfer / Upload ── */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:48px 24px;text-align:center;transition:all .2s;cursor:pointer;margin-bottom:24px}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:var(--accent-bg)}
+.upload-zone .uz-icon{font-size:40px;color:var(--text-dim);margin-bottom:8px}
+.upload-zone p{color:var(--text-dim);font-size:14px}
+.upload-zone .uz-sub{font-size:12px;margin-top:4px}
+.dest-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;font-size:13px}
+.dest-bar strong{color:var(--accent-glow);font-family:var(--mono)}
+
+.xfer-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px}
+.xfer-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px}
+.xfer-head .xf-name{font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xfer-head .xf-status{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:600}
+.xf-active{background:rgba(0,112,209,.15);color:var(--accent-glow)}.xf-done{background:rgba(64,176,96,.15);color:var(--success)}.xf-error{background:rgba(209,64,64,.15);color:var(--danger)}
+.xfer-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-bottom:6px}.xfer-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.xfer-info{display:flex;gap:14px;font-size:12px;color:var(--text-dim)}
+
+/* ── Settings ── */
+.setting-group{margin-bottom:24px}.setting-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.setting-input{padding:10px 14px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text);font-size:14px;font-family:var(--mono);width:100%;max-width:500px}
+.setting-input:focus{outline:none;border-color:var(--accent)}
+.setting-hint{font-size:12px;color:var(--text-dim);margin-top:4px}
+
+/* ── Modals / Preview ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:340px;max-width:500px}
+.modal h3{margin-bottom:16px;font-size:16px}
+.modal input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:14px;font-family:var(--mono);margin-bottom:14px}
+.modal input:focus{outline:none;border-color:var(--accent)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.preview-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:center;justify-content:center}
+.preview{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:90%;max-width:800px;max-height:80vh;overflow:auto;padding:24px}
+.preview h3{font-size:15px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.preview pre{background:var(--bg);padding:14px;border-radius:var(--radius);font-family:var(--mono);font-size:13px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:55vh}
+.preview img{max-width:100%;border-radius:var(--radius)}
+.sfo-tbl{width:100%;border-collapse:collapse}.sfo-tbl td{padding:6px 10px;border-bottom:1px solid var(--border);font-size:13px}.sfo-tbl td:first-child{font-weight:600;color:var(--accent);width:180px;font-family:var(--mono)}
+
+/* ── Context menu ── */
+.ctx{position:fixed;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:4px;z-index:250;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.ctx-item{padding:8px 12px;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;gap:8px}.ctx-item:hover{background:var(--bg-hover)}
+.ctx-sep{height:1px;background:var(--border);margin:4px 0}
+
+/* ── Quick actions ── */
+.quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:8px}
+.quick-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .15s;text-align:center}
+.quick-card:hover{border-color:var(--accent);background:var(--bg-hover);transform:translateY(-1px)}
+.quick-card .qi{font-size:28px;margin-bottom:6px}.quick-card .qt{font-size:13px;font-weight:500}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:var(--radius);font-size:13px;z-index:400;animation:toastIn .3s;max-width:360px}
+.toast.success{background:var(--success);color:#fff}.toast.error{background:var(--danger);color:#fff}
+@keyframes toastIn{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+
+.empty{text-align:center;padding:48px 20px;color:var(--text-dim)}.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--text-dim)}
+.hidden{display:none!important}
+
+@media(max-width:768px){
+  .fheader,.frow{grid-template-columns:28px 1fr 70px}.fdate,.fperms{display:none}
+  .cards{grid-template-columns:1fr 1fr}
+  .apps-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<button class="hamburger" id="hamburger" onclick="toggleSidebar()">&#9776;</button>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <svg viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="8" fill="#0070d1"/><path d="M8 18c0-2 1.5-3.5 3.5-3.5S15 16 15 18s-1.5 3.5-3.5 3.5S8 20 8 18zm10-6c0-1.1.9-2 2-2s2 .9 2 2v12c0 1.1-.9 2-2 2s-2-.9-2-2V12zm7 2.5a2.5 2.5 0 015 0v7a2.5 2.5 0 01-5 0v-7z" fill="#fff" opacity=".9"/></svg>
+    <div><div class="sidebar-brand-text">PS4 File Manager</div><div class="sidebar-brand-sub">GoldHEN FTP</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-link active" data-route="#/" onclick="go('#/')"><span class="nav-icon">&#9638;</span> Dashboard</div>
+    <div class="nav-link" data-route="#/files" onclick="go('#/files')"><span class="nav-icon">&#128193;</span> Arquivos</div>
+    <div class="nav-link" data-route="#/apps" onclick="go('#/apps')"><span class="nav-icon">&#127918;</span> Apps</div>
+    <div class="nav-link" data-route="#/pkgs" onclick="go('#/pkgs')"><span class="nav-icon">&#128230;</span> PKGs / USB</div>
+    <div class="nav-link" data-route="#/transfer" onclick="go('#/transfer')"><span class="nav-icon">&#8645;</span> Transferir</div>
+    <div class="nav-link" data-route="#/settings" onclick="go('#/settings')"><span class="nav-icon">&#9881;</span> Configurar</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="conn"><div class="conn-dot off" id="sidebarDot"></div><span id="sidebarStatus">Offline</span></div>
+    <div id="sidebarIp" style="font-family:var(--mono);font-size:11px">—</div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="page" id="page"></div>
+</div>
+
+<div id="ctxMenu" class="ctx hidden"></div>
+
+<script>
+/* ════════════════════════════════════════════
+   State
+   ════════════════════════════════════════════ */
+let currentPath="/",currentItems=[],selectedItem=null,selectedIdx=-1;
+let clipboard=null; // {path,name,is_dir,mode}
+let modalCb=null;
+let ps4Status={connected:false,ip:"—",port:2121,server:""};
+let uploadDest="/mnt/usb0";
+let activeTransfers={}; // id -> {filename,total,loaded,speed,status,startTime,phase,error,dst}
+let xferPollId=null;
+
+/* ════════════════════════════════════════════
+   API helpers
+   ════════════════════════════════════════════ */
+function getApiUrl(){
+  try{const u=localStorage.getItem("ps4fm_api_url");if(u)return u.replace(/\/$/,"")}catch{}
+  return window.location.origin==="null"?"http://localhost:8090":window.location.origin;
+}
+function api(path){return getApiUrl()+path}
+async function apiFetch(path,opts){const r=await fetch(api(path),opts);return r.json()}
+
+/* ════════════════════════════════════════════
+   Routing
+   ════════════════════════════════════════════ */
+function go(hash){location.hash=hash;closeSidebar()}
+function getRoute(){const h=location.hash||"#/";if(h.startsWith("#/files"))return"files";if(h==="#/apps")return"apps";if(h==="#/pkgs")return"pkgs";if(h==="#/transfer")return"transfer";if(h==="#/settings")return"settings";return"dashboard"}
+function getFilePath(){const h=location.hash||"";if(!h.startsWith("#/files"))return"/";const p=h.slice(7);return p?"/"+p:"/"}
+
+function route(){
+  const r=getRoute();
+  document.querySelectorAll(".nav-link").forEach(n=>{
+    const nr=n.dataset.route;
+    n.classList.toggle("active",r==="files"?nr==="#/files":r==="dashboard"?nr==="#/":nr===`#/${r}`)
+  });
+  const pg=document.getElementById("page");
+  switch(r){
+    case"dashboard":renderDashboard(pg);break;
+    case"files":renderFiles(pg);break;
+    case"apps":renderApps(pg);break;
+    case"pkgs":renderPkgs(pg);break;
+    case"transfer":renderTransfer(pg);break;
+    case"settings":renderSettings(pg);break;
+  }
+}
+window.addEventListener("hashchange",route);
+
+/* ════════════════════════════════════════════
+   Sidebar mobile
+   ════════════════════════════════════════════ */
+function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlay").classList.toggle("show")}
+function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("show")}
+
+/* ════════════════════════════════════════════
+   Status polling
+   ════════════════════════════════════════════ */
+async function pollStatus(){
+  try{
+    const d=await apiFetch("/api/status");
+    ps4Status=d;
+    const dot=document.getElementById("sidebarDot"),st=document.getElementById("sidebarStatus"),ip=document.getElementById("sidebarIp");
+    if(d.connected){dot.className="conn-dot on";st.textContent="Online";ip.textContent=`${d.ip}:${d.port}`}
+    else{dot.className="conn-dot off";st.textContent="Offline";ip.textContent="—"}
+  }catch{ps4Status.connected=false;document.getElementById("sidebarDot").className="conn-dot off";document.getElementById("sidebarStatus").textContent="Erro"}
+}
+
+/* ════════════════════════════════════════════
+   Utilities
+   ════════════════════════════════════════════ */
+function humanSize(b){if(!b||b<=0)return"0 B";const u=["B","KB","MB","GB","TB"],i=Math.floor(Math.log(b)/Math.log(1024));return(b/Math.pow(1024,i)).toFixed(i>0?1:0)+" "+u[i]}
+function humanSpeed(b){return b?humanSize(b)+"/s":"—"}
+function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
+function fileIcon(n){const e=(n.split(".").pop()||"").toLowerCase();return{pkg:"\u{1F4E6}",sfo:"⚙",json:"\u{1F4CB}",xml:"\u{1F4C4}",png:"\u{1F5BC}",jpg:"\u{1F5BC}",jpeg:"\u{1F5BC}",gif:"\u{1F5BC}",dds:"\u{1F5BC}",txt:"\u{1F4DD}",log:"\u{1F4DD}",db:"\u{1F5C4}",dat:"\u{1F5C4}",at9:"\u{1F3B5}",mp3:"\u{1F3B5}",mp4:"\u{1F3AC}",sh:"\u{1F4DC}",py:"\u{1F4DC}",pbm:"\u{1F512}"}[e]||"\u{1F4C4}"}
+function toast(msg,type="success"){const t=document.createElement("div");t.className="toast "+type;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),4000)}
+
+/* ════════════════════════════════════════════
+   Dashboard
+   ════════════════════════════════════════════ */
+async function renderDashboard(pg){
+  pg.innerHTML=`<div class="page-title">Dashboard</div><div class="cards" id="dashCards"><div class="loading"><div class="spinner"></div> Carregando...</div></div><div class="page-title" style="font-size:16px;margin-top:8px">Acesso rapido</div><div class="quick-grid"><div class="quick-card" onclick="go('#/files')"><div class="qi">&#128193;</div><div class="qt">Explorar arquivos</div></div><div class="quick-card" onclick="go('#/apps')"><div class="qi">&#127918;</div><div class="qt">Apps instalados</div></div><div class="quick-card" onclick="go('#/pkgs')"><div class="qi">&#128230;</div><div class="qt">Escanear USB</div></div><div class="quick-card" onclick="go('#/transfer')"><div class="qi">&#8645;</div><div class="qt">Transferir jogos</div></div></div>`;
+  try{
+    const [status,disk,apps]=await Promise.all([apiFetch("/api/status"),apiFetch("/api/disk_usage").catch(()=>({})),apiFetch("/api/apps").catch(()=>({apps:[]}))]);
+    const appCount=apps.apps?apps.apps.length:0;
+    const totalSize=disk.total_pkg_size||0;
+    const el=document.getElementById("dashCards");
+    if(!el)return;
+    el.innerHTML=`
+      <div class="card"><div class="card-label">Conexao</div><div class="card-value ${status.connected?"green":"red"}">${status.connected?"Online":"Offline"}</div><div class="card-sub">${status.connected?status.server:"Sem conexao com o PS4"}</div></div>
+      <div class="card"><div class="card-label">Apps instalados</div><div class="card-value blue">${appCount}</div><div class="card-sub">${humanSize(totalSize)} em pacotes</div></div>
+      <div class="card"><div class="card-label">IP do PS4</div><div class="card-value" style="font-size:20px;font-family:var(--mono)">${status.ip||"—"}</div><div class="card-sub">Porta ${status.port||"—"}</div></div>
+      <div class="card"><div class="card-label">Servidor FTP</div><div class="card-value" style="font-size:16px">${status.server||"—"}</div><div class="card-sub">API: ${getApiUrl()}</div></div>`;
+  }catch(e){document.getElementById("dashCards").innerHTML=`<div class="card"><div class="card-label">Erro</div><div class="card-value red">!</div><div class="card-sub">${e.message}</div></div>`}
+}
+
+/* ════════════════════════════════════════════
+   Files
+   ════════════════════════════════════════════ */
+async function renderFiles(pg){
+  const path=getFilePath();currentPath=path;selectedItem=null;selectedIdx=-1;
+  pg.innerHTML=`<div class="page-title">Arquivos</div><div id="clipBar"></div><div id="bcWrap"></div><div id="fileTool"></div><div id="fileWrap"><div class="loading"><div class="spinner"></div></div></div>`;
+  renderClipBar();renderBreadcrumb(path);renderToolbar();
+  await loadDir(path);
+}
+
+function renderBreadcrumb(path){
+  const el=document.getElementById("bcWrap");if(!el)return;
+  const parts=path.split("/").filter(Boolean);
+  let html=`<div class="breadcrumb"><span class="bc-item" onclick="go('#/files')">/</span>`;
+  let acc="";
+  parts.forEach((p,i)=>{acc+="/"+p;const last=i===parts.length-1;html+=`<span class="bc-sep">/</span>`;html+=last?`<span class="bc-item bc-current">${p}</span>`:`<span class="bc-item" onclick="go('#/files${acc}')">${p}</span>`});
+  html+=`</div>`;el.innerHTML=html;
+}
+
+function renderToolbar(){
+  const el=document.getElementById("fileTool");if(!el)return;
+  el.innerHTML=`<div class="toolbar"><button class="btn" onclick="reloadDir()">&#x21bb; Refresh</button><button class="btn" onclick="goUp()">&#x2191; Voltar</button><button class="btn" onclick="showMkdir()">+ Pasta</button><button class="btn" id="tbRen" style="display:none" onclick="showRename()">Renomear</button><button class="btn success" id="tbCopy" style="display:none" onclick="doCopy('copy')">Copiar</button><button class="btn success" id="tbCut" style="display:none" onclick="doCopy('move')">Mover</button><button class="btn danger" id="tbDel" style="display:none" onclick="doDelete()">Excluir</button><div class="toolbar-spacer"></div><input type="text" class="search-box" placeholder="Filtrar..." oninput="filterDir(this.value)"></div>`;
+}
+
+function renderClipBar(){
+  const el=document.getElementById("clipBar");if(!el)return;
+  if(!clipboard){el.innerHTML="";return}
+  el.innerHTML=`<div class="clip-bar"><strong>${clipboard.mode==="copy"?"COPIAR":"MOVER"}</strong><span class="clip-path">${clipboard.path}</span><button class="btn btn-sm primary" onclick="doPaste()">Colar aqui</button><button class="btn btn-sm" onclick="clipClear()">Cancelar</button></div>`;
+}
+
+async function loadDir(path){
+  currentPath=path;selectedItem=null;selectedIdx=-1;
+  const wrap=document.getElementById("fileWrap");if(!wrap)return;
+  wrap.innerHTML=`<div class="loading"><div class="spinner"></div></div>`;
+  try{
+    const d=await apiFetch(`/api/list?path=${encodeURIComponent(path)}`);
+    if(d.error){toast(d.error,"error");return}
+    currentItems=d.items;renderDirItems(d.items);
+  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`}
+}
+
+function renderDirItems(items){
+  const wrap=document.getElementById("fileWrap");if(!wrap)return;
+  if(!items.length){wrap.innerHTML=`<div class="empty">Diretorio vazio</div>`;return}
+  let html=`<div class="file-list-wrap"><div class="fheader"><div></div><div>Nome</div><div style="text-align:right">Tamanho</div><div>Data</div><div>Permissoes</div></div>`;
+  items.forEach((it,i)=>{
+    const ic=it.is_dir?"\u{1F4C1}":fileIcon(it.name);
+    const nc=it.is_dir?"fname dir":"fname";
+    const sz=it.is_dir?"—":humanSize(it.size);
+    const cut=clipboard&&clipboard.path===`${currentPath.replace(/\/$/,"")}/${it.name}`?" cut":"";
+    const dbl=it.is_dir?`go('#/files${currentPath.replace(/\/$/,"")}/${it.name}')`:`previewFile('${currentPath.replace(/\/$/,"")}/${it.name}')`;
+    html+=`<div class="frow${cut}" data-i="${i}" onclick="selItem(${i})" ondblclick="${dbl}" oncontextmenu="showCtx(event,${i})"><div class="ficon">${ic}</div><div class="${nc}">${esc(it.name)}</div><div class="fsize">${sz}</div><div class="fdate">${it.date}</div><div class="fperms">${it.permissions}</div></div>`;
+  });
+  html+=`</div>`;wrap.innerHTML=html;
+}
+
+function selItem(i){
+  selectedItem=currentItems[i];selectedIdx=i;
+  document.querySelectorAll(".frow").forEach(r=>r.classList.remove("selected"));
+  const row=document.querySelector(`.frow[data-i="${i}"]`);if(row)row.classList.add("selected");
+  ["tbRen","tbCopy","tbCut","tbDel"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display=""});
+}
+
+function filterDir(q){const lq=q.toLowerCase();renderDirItems(currentItems.filter(i=>i.name.toLowerCase().includes(lq)))}
+function reloadDir(){loadDir(currentPath);renderBreadcrumb(currentPath)}
+function goUp(){if(currentPath==="/")return;go("#/files"+(currentPath.replace(/\/[^/]+\/?$/,"")||""))}
+
+/* ── Clipboard ── */
+function doCopy(mode){if(!selectedItem)return;clipboard={path:`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`,name:selectedItem.name,is_dir:selectedItem.is_dir,mode};renderClipBar();renderDirItems(currentItems)}
+function clipClear(){clipboard=null;renderClipBar();renderDirItems(currentItems)}
+async function doPaste(){if(!clipboard)return;
+  try{const d=await apiFetch("/api/copy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({src:clipboard.path,dst:currentPath,mode:clipboard.mode})});
+  if(d.ok){toast(`${clipboard.mode==="copy"?"Copiando":"Movendo"} ${clipboard.name}...`,"success");startXferPoll();clipClear();setTimeout(reloadDir,1500)}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
+
+/* ── Delete / Rename / Mkdir ── */
+async function doDelete(){if(!selectedItem)return;const fp=`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`;if(!confirm(`Excluir ${selectedItem.is_dir?"pasta":"arquivo"}: ${selectedItem.name}?`))return;
+  try{const d=await apiFetch("/api/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:fp,is_dir:selectedItem.is_dir})});if(d.ok){toast("Excluido","success");reloadDir()}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
+
+function showRename(){if(!selectedItem)return;showModal("Renomear",selectedItem.name,"Renomear",async v=>{
+  const o=`${currentPath.replace(/\/$/,"")}/${selectedItem.name}`,n=`${currentPath.replace(/\/$/,"")}/${v}`;
+  const d=await apiFetch("/api/rename",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({old:o,new:n})});
+  if(d.ok){toast("Renomeado","success");reloadDir()}else toast(d.error,"error")})}
+
+function showMkdir(){showModal("Nova Pasta","","Criar",async v=>{
+  const d=await apiFetch("/api/mkdir",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:`${currentPath.replace(/\/$/,"")}/${v}`})});
+  if(d.ok){toast("Pasta criada","success");reloadDir()}else toast(d.error,"error")})}
+
+/* ── Context menu ── */
+function showCtx(e,i){e.preventDefault();selItem(i);const it=currentItems[i];const fp=`${currentPath.replace(/\/$/,"")}/${it.name}`;
+  const m=document.getElementById("ctxMenu");let h="";
+  if(it.is_dir)h+=`<div class="ctx-item" onclick="go('#/files${fp}');hideCtx()">&#128194; Abrir</div>`;
+  else h+=`<div class="ctx-item" onclick="previewFile('${fp}');hideCtx()">&#128065; Visualizar</div>`;
+  h+=`<div class="ctx-item" onclick="window.open(api('/api/download?path=${encodeURIComponent(fp)}'));hideCtx()">&#8595; Download</div>`;
+  h+=`<div class="ctx-sep"></div><div class="ctx-item" onclick="doCopy('copy');hideCtx()">&#128203; Copiar</div><div class="ctx-item" onclick="doCopy('move');hideCtx()">&#9986; Mover</div>`;
+  if(clipboard)h+=`<div class="ctx-item" onclick="doPaste();hideCtx()">&#128204; Colar aqui</div>`;
+  h+=`<div class="ctx-sep"></div><div class="ctx-item" onclick="showRename();hideCtx()">&#9998; Renomear</div><div class="ctx-item" style="color:var(--danger)" onclick="doDelete();hideCtx()">&#10007; Excluir</div>`;
+  m.innerHTML=h;m.style.left=Math.min(e.clientX,window.innerWidth-200)+"px";m.style.top=Math.min(e.clientY,window.innerHeight-300)+"px";m.classList.remove("hidden")}
+function hideCtx(){document.getElementById("ctxMenu").classList.add("hidden")}
+document.addEventListener("click",hideCtx);
+
+/* ── Preview ── */
+async function previewFile(path){
+  const name=path.split("/").pop();
+  const bg=document.createElement("div");bg.className="preview-bg";bg.onclick=e=>{if(e.target===bg)bg.remove()};
+  bg.innerHTML=`<div class="preview"><h3><span>${esc(name)}</span><button class="btn btn-sm" onclick="this.closest('.preview-bg').remove()">&#x2715;</button></h3><div class="loading"><div class="spinner"></div></div></div>`;
+  document.body.appendChild(bg);
+  try{
+    const d=await apiFetch(`/api/preview?path=${encodeURIComponent(path)}`);
+    const c=bg.querySelector(".preview");if(!c)return;
+    let html="";
+    if(d.error)html=`<pre style="color:var(--danger)">${d.error}</pre>`;
+    else if(d.type==="sfo")html=`<table class="sfo-tbl">${Object.entries(d.data).map(([k,v])=>`<tr><td>${k}</td><td>${esc(String(v))}</td></tr>`).join("")}</table>`;
+    else if(d.type==="json")html=`<pre>${esc(JSON.stringify(d.data,null,2))}</pre>`;
+    else if(d.type==="text")html=`<pre>${esc(d.data)}</pre>`;
+    else if(d.type==="image")html=`<img src="${d.data}">`;
+    else html=`<p>Binario (${humanSize(d.size)})</p><pre>${d.hex||""}</pre>`;
+    html+=`<div style="margin-top:14px"><a href="${api("/api/download?path="+encodeURIComponent(path))}" class="btn primary" target="_blank">&#8595; Download</a></div>`;
+    c.querySelector(".loading").outerHTML=html;
+  }catch(e){bg.querySelector(".loading").outerHTML=`<pre style="color:var(--danger)">${e.message}</pre>`}
+}
+
+/* ════════════════════════════════════════════
+   Apps
+   ════════════════════════════════════════════ */
+async function renderApps(pg){
+  pg.innerHTML=`<div class="page-title">Apps Instalados</div><div class="toolbar"><button class="btn" onclick="renderApps(document.getElementById('page'))">&#x21bb; Refresh</button></div><div id="appGrid" class="apps-grid"><div class="loading"><div class="spinner"></div></div></div>`;
+  try{
+    const d=await apiFetch("/api/apps");if(d.error){toast(d.error,"error");return}
+    const el=document.getElementById("appGrid");if(!el)return;
+    el.innerHTML=d.apps.map(a=>`<div class="app-card"><div class="app-icon-area">${a.icon?`<img src="${a.icon}">`:`<div class="app-ph">${a.title?a.title[0]:"?"}</div>`}</div><div class="app-body"><div class="app-title">${esc(a.title)}</div><div class="app-meta">${a.title_id} &middot; v${a.version} &middot; ${a.category}</div><div class="app-meta">${a.content_id}</div></div><div class="app-actions"><button class="btn btn-sm" onclick="go('#/files/user/app/${a.title_id}')">Arquivos</button><button class="btn btn-sm danger" onclick="uninstApp('${a.title_id}','${esc(a.title)}')">Desinstalar</button></div></div>`).join("");
+  }catch(e){toast(e.message,"error")}
+}
+async function uninstApp(tid,title){if(!confirm(`Desinstalar "${title}" (${tid})?`))return;
+  try{const d=await apiFetch("/api/uninstall",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title_id:tid})});
+  if(d.ok){toast(`${title} desinstalado`,"success");renderApps(document.getElementById("page"))}else toast(d.error,"error")}catch(e){toast(e.message,"error")}}
+
+/* ════════════════════════════════════════════
+   PKGs
+   ════════════════════════════════════════════ */
+async function renderPkgs(pg){
+  pg.innerHTML=`<div class="page-title">PKGs nos Pendrives</div><div class="toolbar"><button class="btn" onclick="renderPkgs(document.getElementById('page'))">&#x21bb; Escanear</button><div class="toolbar-spacer"></div><span style="font-size:12px;color:var(--text-dim)">Busca recursiva por .pkg em USB0-3</span></div><div id="pkgWrap"><div class="loading"><div class="spinner"></div> Escaneando...</div></div>`;
+  try{
+    const d=await apiFetch("/api/scan_usb");if(d.error){toast(d.error,"error");return}
+    const el=document.getElementById("pkgWrap");if(!el)return;
+    let html="";
+    for(const[usb,info]of Object.entries(d)){
+      const label=usb.split("/").pop().toUpperCase();
+      html+=`<div class="pkg-section"><div class="pkg-section-title">${label} (${usb}) ${info.mounted?`<span class="cnt">${info.pkgs.length} .pkg</span>`:`<span class="cnt" style="color:var(--danger)">nao montado</span>`}</div>`;
+      if(info.pkgs&&info.pkgs.length){info.pkgs.forEach(p=>{
+        const parent=p.path.substring(0,p.path.lastIndexOf("/"));
+        html+=`<div class="pkg-row"><div class="pkg-icon">&#x1F4E6;</div><div class="pkg-info"><div class="pkg-name">${esc(p.name)}</div><div class="pkg-path">${p.path}</div></div><div class="pkg-sz">${humanSize(p.size)}</div><div class="btn-group"><button class="btn btn-sm" onclick="go('#/files${parent}')" title="Abrir pasta">&#128194;</button><button class="btn btn-sm" onclick="window.open(api('/api/download?path=${encodeURIComponent(p.path)}'))" title="Download">&#8595;</button><button class="btn btn-sm success" onclick="copyPkg('${p.path}','${esc(p.name)}')" title="Copiar para outro USB">Copiar</button></div></div>`})}
+      else if(info.mounted)html+=`<p style="color:var(--text-dim);padding:8px 0">Nenhum .pkg encontrado</p>`;
+      html+=`</div>`}
+    el.innerHTML=html;
+  }catch(e){document.getElementById("pkgWrap").innerHTML=`<div class="empty">Erro: ${e.message}</div>`}
+}
+function copyPkg(src,name){const srcUsb=src.split("/").slice(0,3).join("/");const opts=["/mnt/usb0","/mnt/usb1","/mnt/usb2"].filter(d=>d!==srcUsb);
+  const dest=prompt(`Copiar ${name} para:\n\n${opts.join(", ")}\n\nOu outro caminho:`,opts[0]);if(!dest)return;
+  apiFetch("/api/copy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({src,dst:dest,mode:"copy"})}).then(d=>{if(d.ok){toast("Copiando...","success");startXferPoll()}else toast(d.error,"error")}).catch(e=>toast(e.message,"error"))}
+
+/* ════════════════════════════════════════════
+   Transfer (large file upload via XHR)
+   ════════════════════════════════════════════ */
+function renderTransfer(pg){
+  pg.innerHTML=`<div class="page-title">Transferir Jogos e Arquivos</div>
+    <div class="dest-bar">Destino no PS4: <strong id="destLabel">${uploadDest}</strong>
+      <button class="btn btn-sm" onclick="setDest('/mnt/usb0')">USB0</button>
+      <button class="btn btn-sm" onclick="setDest('/mnt/usb1')">USB1</button>
+      <button class="btn btn-sm" onclick="setDest('/mnt/usb2')">USB2</button>
+      <button class="btn btn-sm" onclick="setDest('/user/app')">App</button>
+      <button class="btn btn-sm" onclick="promptDest()">Outro...</button></div>
+    <div class="upload-zone" id="uz" onclick="document.getElementById('finput').click()">
+      <div class="uz-icon">&#8593;</div>
+      <p><strong>Arraste .pkg ou qualquer arquivo aqui</strong></p>
+      <p class="uz-sub">Suporta arquivos grandes (jogos de 50GB+) com progresso em tempo real</p>
+      <input type="file" id="finput" style="display:none" multiple onchange="uploadFiles(this.files)">
+    </div>
+    <div id="xferList"></div>`;
+  const uz=document.getElementById("uz");
+  uz.addEventListener("dragover",e=>{e.preventDefault();uz.classList.add("dragover")});
+  uz.addEventListener("dragleave",()=>uz.classList.remove("dragover"));
+  uz.addEventListener("drop",e=>{e.preventDefault();uz.classList.remove("dragover");uploadFiles(e.dataTransfer.files)});
+  renderXferList();
+}
+
+function setDest(d){uploadDest=d;const l=document.getElementById("destLabel");if(l)l.textContent=d}
+function promptDest(){const d=prompt("Caminho de destino no PS4:",currentPath);if(d)setDest(d)}
+
+function uploadFiles(files){
+  for(const file of files){
+    const tid="u_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
+    activeTransfers[tid]={filename:file.name,total:file.size,loaded:0,speed:0,status:"active",startTime:Date.now(),phase:"uploading",error:null,dst:uploadDest+"/"+file.name};
+
+    const xhr=new XMLHttpRequest();
+    xhr.open("POST",api("/api/upload_stream"),true);
+    xhr.setRequestHeader("X-Filename",encodeURIComponent(file.name));
+    xhr.setRequestHeader("X-Destination",uploadDest);
+    xhr.setRequestHeader("X-Transfer-Id",tid);
+
+    let lastLoaded=0,lastTime=Date.now();
+    xhr.upload.onprogress=function(e){
+      if(!e.lengthComputable)return;
+      const now=Date.now(),dt=(now-lastTime)/1000;
+      if(dt>0.3){const speed=(e.loaded-lastLoaded)/dt;lastLoaded=e.loaded;lastTime=now;
+        activeTransfers[tid].speed=speed}
+      activeTransfers[tid].loaded=e.loaded;activeTransfers[tid].total=e.total;
+      renderXferList();
+    };
+    xhr.onload=function(){
+      if(xhr.status>=200&&xhr.status<300){activeTransfers[tid].status="done";activeTransfers[tid].loaded=activeTransfers[tid].total;toast(`${file.name} enviado!`,"success")}
+      else{activeTransfers[tid].status="error";activeTransfers[tid].error=xhr.responseText;toast(`Erro: ${file.name}`,"error")}
+      renderXferList();
+    };
+    xhr.onerror=function(){activeTransfers[tid].status="error";activeTransfers[tid].error="Falha na conexao";toast("Erro de conexao","error");renderXferList()};
+    xhr.send(file);
+    renderXferList();
+  }
+}
+
+function renderXferList(){
+  const el=document.getElementById("xferList");if(!el)return;
+  const items=Object.values(activeTransfers);
+  if(!items.length){el.innerHTML="";return}
+  el.innerHTML=`<h3 style="font-size:15px;margin:16px 0 10px">Transferencias</h3>`+items.map(t=>{
+    const pct=t.total>0?Math.round(t.loaded/t.total*100):0;
+    const elapsed=(Date.now()-t.startTime)/1000;
+    const eta=t.speed>0&&t.status==="active"?Math.round((t.total-t.loaded)/t.speed):0;
+    const etaStr=eta>60?Math.round(eta/60)+"m "+eta%60+"s":eta+"s";
+    const sc=t.status==="done"?"xf-done":t.status==="error"?"xf-error":"xf-active";
+    const st=t.status==="done"?"Concluido":t.status==="error"?"Erro":"Enviando...";
+    return`<div class="xfer-item"><div class="xfer-head"><span style="font-size:15px">${t.status==="done"?"&#10003;":t.status==="error"?"&#10007;":"&#8593;"}</span><span class="xf-name">${esc(t.filename)}</span><span class="xf-status ${sc}">${st}</span></div>${t.status==="active"?`<div class="xfer-bar"><div class="xfer-fill" style="width:${pct}%"></div></div>`:""}<div class="xfer-info"><span>${humanSize(t.loaded)} / ${humanSize(t.total)}</span><span>${pct}%</span>${t.status==="active"?`<span>${humanSpeed(t.speed)}</span><span>ETA: ${etaStr}</span>`:""}<span>${t.dst}</span></div></div>`}).join("");
+}
+
+/* Server-side transfer polling (copy/move) */
+function startXferPoll(){if(!xferPollId)xferPollId=setInterval(pollServerXfers,1500);pollServerXfers()}
+async function pollServerXfers(){
+  try{const d=await apiFetch("/api/transfers");const items=Object.values(d);
+    items.forEach(t=>{activeTransfers["s_"+t.id]={filename:t.filename,total:t.total||0,loaded:t.transferred||0,speed:t.speed||0,status:t.status,startTime:(t.started||Date.now()/1000)*1000,phase:t.phase||"",error:t.error||null,dst:t.dst||""}});
+    renderXferList();
+    if(items.every(t=>t.status!=="active")){clearInterval(xferPollId);xferPollId=null}
+  }catch{}}
+
+/* ════════════════════════════════════════════
+   Settings
+   ════════════════════════════════════════════ */
+function renderSettings(pg){
+  const cur=getApiUrl();
+  const isLocal=window.location.hostname==="localhost"||window.location.hostname==="127.0.0.1";
+  pg.innerHTML=`<div class="page-title">Configuracoes</div>
+    <div class="setting-group"><label>URL da API (servidor local)</label><input class="setting-input" id="apiUrlInput" type="text" value="${esc(cur)}"><div class="setting-hint">${isLocal?"Conectado localmente. Altere se o servidor rodar em outra maquina.":"Insira o IP do computador rodando o servidor Python (ex: http://192.168.1.110:8090)"}</div></div>
+    <div class="setting-group"><button class="btn primary" onclick="saveApiUrl()">Salvar</button> <button class="btn" onclick="resetApiUrl()">Resetar padrao</button></div>
+    <hr style="border-color:var(--border);margin:24px 0">
+    <div class="setting-group"><label>Status da conexao</label><div id="settingsStatus"><div class="loading"><div class="spinner"></div></div></div></div>
+    <div class="setting-group"><label>Sobre</label><div style="font-size:13px;color:var(--text-dim)"><p>PS4 File Manager v2.0</p><p>Gerenciador de arquivos via FTP para PS4 com GoldHEN.</p><p style="margin-top:8px">O servidor Python roda localmente e se conecta ao PS4 via FTP. Este frontend pode ser hospedado na Vercel — basta configurar a URL da API acima apontando para o servidor local.</p></div></div>`;
+  apiFetch("/api/status").then(d=>{const el=document.getElementById("settingsStatus");if(!el)return;
+    el.innerHTML=d.connected?`<div style="color:var(--success)">&#10003; Conectado — ${d.server}<br><span style="color:var(--text-dim);font-size:12px">IP: ${d.ip}:${d.port}</span></div>`:`<div style="color:var(--danger)">&#10007; Offline<br><span style="color:var(--text-dim);font-size:12px">${d.error||""}</span></div>`}).catch(e=>{const el=document.getElementById("settingsStatus");if(el)el.innerHTML=`<div style="color:var(--danger)">&#10007; ${e.message}</div>`});
+}
+function saveApiUrl(){const v=document.getElementById("apiUrlInput").value.trim();if(!v)return;try{localStorage.setItem("ps4fm_api_url",v.replace(/\/$/,""))}catch{}toast("API URL salva","success");pollStatus()}
+function resetApiUrl(){try{localStorage.removeItem("ps4fm_api_url")}catch{}document.getElementById("apiUrlInput").value=window.location.origin;toast("Resetado","success");pollStatus()}
+
+/* ════════════════════════════════════════════
+   Modal
+   ════════════════════════════════════════════ */
+function showModal(title,val,okText,cb){
+  const bg=document.createElement("div");bg.className="modal-bg";bg.onclick=e=>{if(e.target===bg)bg.remove()};
+  bg.innerHTML=`<div class="modal"><h3>${title}</h3><input type="text" id="modalIn" value="${esc(val)}"><div class="modal-btns"><button class="btn" onclick="this.closest('.modal-bg').remove()">Cancelar</button><button class="btn primary" id="modalOk">${okText}</button></div></div>`;
+  document.body.appendChild(bg);
+  const inp=document.getElementById("modalIn");inp.focus();inp.select();
+  const ok=()=>{const v=inp.value.trim();if(v){bg.remove();cb(v)}};
+  document.getElementById("modalOk").onclick=ok;
+  inp.onkeydown=e=>{if(e.key==="Enter")ok();if(e.key==="Escape")bg.remove()};
+}
+
+/* ════════════════════════════════════════════
+   Keyboard shortcuts
+   ════════════════════════════════════════════ */
+document.addEventListener("keydown",e=>{
+  if(["INPUT","TEXTAREA"].includes(document.activeElement?.tagName))return;
+  if(e.key==="Backspace"&&getRoute()==="files"){e.preventDefault();goUp()}
+  if(e.key==="Delete"&&selectedItem)doDelete();
+  if(e.key==="F2"&&selectedItem){e.preventDefault();showRename()}
+  if((e.ctrlKey||e.metaKey)&&e.key==="c"&&selectedItem){e.preventDefault();doCopy("copy")}
+  if((e.ctrlKey||e.metaKey)&&e.key==="x"&&selectedItem){e.preventDefault();doCopy("move")}
+  if((e.ctrlKey||e.metaKey)&&e.key==="v"&&clipboard){e.preventDefault();doPaste()}
+});
+
+/* ════════════════════════════════════════════
+   Init
+   ════════════════════════════════════════════ */
+pollStatus();setInterval(pollStatus,15000);
+if(!location.hash)location.hash="#/";
+route();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+.vercel
+node_modules/
+.DS_Store
+*.db.backup
